@@ -64,10 +64,11 @@ public IActionResult Login([FromBody] RequestModel request)
         if (login == null)
             return BadRequest("Invalid login data");
 
+
         // Step 3: Validate user credentials
         var user = _context.Users.FirstOrDefault(u =>
             u.Username == login.Username &&
-            u.Password == login.Password);
+            u.Password ==  login.Password);
 
             string token = AesEncryption.GenerateToken(user.Username);
 
@@ -82,6 +83,9 @@ public IActionResult Login([FromBody] RequestModel request)
         return StatusCode(500, $"Error occurred: {ex.Message}");
     }
 }
+
+
+
 
     [HttpPost("securedata")]
     public IActionResult GetSecureData([FromHeader(Name = "Authorization")] string token)
@@ -127,12 +131,22 @@ public IActionResult Login([FromBody] RequestModel request)
 
 
     [HttpPost("send")]
-    public async Task<IActionResult> SendOtp([FromBody] OtpRequest request)
+    public async Task<IActionResult> SendOtp([FromHeader(Name = "Authorization")] string token,  [FromBody] OtpRequest request)
     {
+        if (!AesEncryption.IsTokenValid(token, out var session))
+        {       
+            return Unauthorized(new { message = "Invalid or expired token" });
+        }
+
         if (string.IsNullOrWhiteSpace(request.Contact))
             return BadRequest("Contact (Email or Mobile) is required.");
 
+         var user = _context.Users.FirstOrDefault(u =>
+            u.Email  == request.Contact);
         string otp = GenerateOtp();
+            user.Otp = otp;
+             user.OtpExpiry = DateTime.Now.AddMinutes(10);
+      
 
         // Send OTP
         if (request.Type.ToLower() == "email")
@@ -140,6 +154,8 @@ public IActionResult Login([FromBody] RequestModel request)
             bool sent = await SendOtpEmail(request.Contact, otp);
             if (!sent)
                 return StatusCode(500, "Failed to send OTP via email");
+            else
+                await _context.SaveChangesAsync();
         }
         else if (request.Type.ToLower() == "mobile")
         {
@@ -152,7 +168,10 @@ public IActionResult Login([FromBody] RequestModel request)
             return BadRequest("Invalid type. Use 'email' or 'mobile'.");
         }
 
-        return Ok(new { message = "OTP sent successfully", otp }); // Don't return OTP in real app
+        return Ok(new { message = "OTP sent successfully", otp });
+
+         // await _context.SaveChangesAsync();
+         // Don't return OTP in real app
     }
 
     private string GenerateOtp()
@@ -202,6 +221,46 @@ public IActionResult Login([FromBody] RequestModel request)
             return false;
         }
     }
+
+     // Reset Password
+    [HttpPost("resetpassword")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email) ||
+            string.IsNullOrWhiteSpace(request.Otp) ||
+            string.IsNullOrWhiteSpace(request.NewPassword))
+        {
+            return BadRequest("All fields are required.");
+        }
+
+        var user =  _context.Users.FirstOrDefault(u => u.Email == request.Email);
+        if (user == null)
+            return NotFound();
+
+        if (user.Otp != request.Otp || user.OtpExpiry < DateTime.Now)
+            return BadRequest("Invalid or expired OTP.");
+
+        // Hash and update password
+        //user.Password = HashPassword(request.NewPassword);
+        user.Password = request.NewPassword;
+        user.Otp = null;
+        user.OtpExpiry = null;
+
+        await _context.SaveChangesAsync();
+
+        return Ok("Password has been reset successfully.");
+    }
+
+    // Hashing (SHA256)
+    // private string HashPassword(string password)
+    // {
+    //     using (var sha = SHA256.Create())
+    //     {
+    //         byte[] bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(password));
+    //         return Convert.ToBase64String(bytes);
+    //     }
+    // }
+
 
 }
 

@@ -5,6 +5,9 @@ namespace WEBAPI.Models
         public int Id { get; set; }  
         public string Username { get; set; }
         public string Password { get; set; }
+        public string? Otp { get; set; }
+        public DateTime? OtpExpiry { get; set; }
+        public string Email { get; set; }
     }
 
     public class RequestModel
@@ -22,6 +25,12 @@ namespace WEBAPI.Models
     {
         public string Contact { get; set; } 
         public string Type { get; set; }  
+    }
+    public class ResetPasswordRequest
+    {
+        public string Email { get; set; }
+        public string Otp { get; set; }
+        public string NewPassword { get; set; }
     }
 
 
