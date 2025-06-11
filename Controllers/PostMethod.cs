@@ -27,6 +27,8 @@ public class SecureController : ControllerBase
     if (user == null || string.IsNullOrEmpty(user.Username) || string.IsNullOrEmpty(user.Password))
         return BadRequest("Username and password are required.");
 
+
+
     try
     {
         // Attempt to insert user into the database
@@ -63,12 +65,14 @@ public IActionResult Login([FromBody] RequestModel request)
 
         if (login == null)
             return BadRequest("Invalid login data");
-
-
+        
         // Step 3: Validate user credentials
         var user = _context.Users.FirstOrDefault(u =>
             u.Username == login.Username &&
             u.Password ==  login.Password);
+
+HttpContext.Session.SetString("Email", user.Username);
+        HttpContext.Session.SetString("UserId", user.Password);
 
             string token = AesEncryption.GenerateToken(user.Username);
 
@@ -85,7 +89,17 @@ public IActionResult Login([FromBody] RequestModel request)
 }
 
 
+ [HttpGet("session")]
+    public IActionResult GetSessionData()
+    {
+        var email = HttpContext.Session.GetString("Email");
+        var Password = HttpContext.Session.GetString("UserId");
 
+        if (email == null)
+            return Unauthorized("No session data found.");
+
+        return Ok(new { Email = email, UserId = Password });
+    }
 
     [HttpPost("securedata")]
     public IActionResult GetSecureData([FromHeader(Name = "Authorization")] string token)
