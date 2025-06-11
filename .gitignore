@@ -1,0 +1,22 @@
+# Build and Output directories
+bin/
+obj/
+
+# Visual Studio files
+.vs/
+*.suo
+
+# Auto-generated .NET Core files
+*.AssemblyAttributes.cs
+apphost.exe
+
+# Cache and temporary files
+*.cache
+MultiTen.*
+
+# Logs
+*.log
+
+# Configuration files (if they contain secrets)
+appsettings.json
+appsettings.Development.json
