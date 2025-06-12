@@ -1,3 +1,5 @@
+namespace MultiTenantAPI.Models
+{
 public class User
     {
         public string Username { get; set; }
@@ -7,4 +9,5 @@ public class User
     public class RequestModel
 {
     public string EncryptedPayload { get; set; }
+}
 }
