@@ -27,20 +27,29 @@ namespace MultiTenantAPI.Controllers
             if (string.IsNullOrEmpty(tenantId))
                 return BadRequest("Tenant ID header is required.");
 
-            if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
+            // ✅ Encrypt the incoming request (simulate secure transmission)
+            string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(request));
+        
+            // ✅ Decrypt the payload back to original
+            string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
+        
+            // ✅ Deserialize to User object
+            var user = JsonSerializer.Deserialize<User>(decryptedJson);
+
+            if (string.IsNullOrEmpty(user.Username) || string.IsNullOrEmpty(user.Password))
                 return BadRequest("Username and Password are required.");
 
-            string userKey = $"{tenantId}:{request.Username}";
+            string userKey = $"{tenantId}:{user.Username}";
 
             if (_registeredUsers.ContainsKey(userKey))
                 return Conflict("User already exists.");
 
-            _registeredUsers[userKey] = request.Password;
+            _registeredUsers[userKey] = user.Password;
 
             return Ok(new
             {
                 Message = "User created successfully.",
-                Username = request.Username,
+                Username = user.Username,
                 Tenant = tenantId
             });
         }
