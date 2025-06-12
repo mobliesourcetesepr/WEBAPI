@@ -26,7 +26,6 @@ namespace MultiTenantAPI.Controllers
         {
             if (string.IsNullOrEmpty(tenantId))
                 return BadRequest("Tenant ID header is required.");
-
             // ✅ Encrypt the incoming request (simulate secure transmission)
             string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(request));
         
