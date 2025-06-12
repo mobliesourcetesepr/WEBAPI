@@ -24,9 +24,6 @@ namespace MultiTenantAPI.Controllers
             _context = context;
         }
 
-        // Simulated in-memory user store
-        //private static Dictionary<string, string> _registeredUsers = new();
-
 
         // 🆕 CREATE USER
         [HttpPost("create-user")]
@@ -48,19 +45,12 @@ namespace MultiTenantAPI.Controllers
             admin.TenantId = tenantId;
 
 
-            var exists = _context.Admins.Any(u => u.TenantId == tenantId && u.Username == user.Username);
+            var exists = _context.Admins.Any(u => u.TenantId == tenantId && u.Username == user.Username && u.Email == user.Email);
             if (exists)
                 return Conflict("User already exists.");
             _context.Admins.Add(admin);
             _context.SaveChanges();
 
-            // string userKey = $"{tenantId}:{user.Username}";
-
-            // if (_registeredUsers.ContainsKey(userKey))
-            //     return Conflict("User already exists.");
-
-            // _registeredUsers[userKey] = user.Password;
-            //return Ok(new { Message = "Admin created successfully.", admin.Username, Tenant = tenantId });
             return Ok(new
             {
                 Message = "Admin created successfully.",
@@ -82,15 +72,16 @@ namespace MultiTenantAPI.Controllers
             string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
             // 3. Deserialize decrypted JSON to get credentials
             var login = JsonSerializer.Deserialize<User>(decryptedJson);
+              Console.WriteLine("Requested Path: " + login);
             // Simple static validation (replace with your own logic)
 
             var user = _context.Admins.FirstOrDefault(u =>
             u.Username == login.Username &&
             u.Password ==  login.Password);
 
-        HttpContext.Session.SetString("Email", user.Email);
-        HttpContext.Session.SetString("Username", user.Username);
-        HttpContext.Session.SetString("TenantId", user.TenantId);
+            HttpContext.Session.SetString("Email", user.Email);
+            HttpContext.Session.SetString("Username", user.Username);
+            HttpContext.Session.SetString("TenantId", user.TenantId);
         
 
             if (login.Username == user.Username && login.Password == user.Password)
@@ -102,20 +93,6 @@ namespace MultiTenantAPI.Controllers
 
                 return Ok(new { Token = token });
             }
-
-
-
-            
-            // if (login.Username == "user" && login.Password == "password")
-            // {
-            //     var sessionInfo = $"{login.Username}|{tenantId}|{DateTime.UtcNow.AddHours(1):O}";
-            //     var token = AesEncryption.Encrypt(sessionInfo);
-
-            //     HttpContext.Session.SetString("Token", token);
-
-            //     return Ok(new { Token = token });
-            // }
-
             return Unauthorized("Invalid credentials.");
         }
 
@@ -140,9 +117,4 @@ namespace MultiTenantAPI.Controllers
         }
     }
 
-    // public class LoginRequest
-    // {
-    //     public string Username { get; set; }
-    //     public string Password { get; set; }
-    // }
 }

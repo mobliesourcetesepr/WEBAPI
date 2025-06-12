@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace MultiTenantAPI.Models
 {
     public class User
@@ -8,6 +10,7 @@ namespace MultiTenantAPI.Models
 
     public class Admin
     {
+        [JsonIgnore]
         public int Id { get; set; }
         public string TenantId { get; set; }
         public string Username { get; set; }
