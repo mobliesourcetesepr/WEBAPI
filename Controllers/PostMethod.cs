@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-
+using MultiTenantAPI.Models;
 using Microsoft.AspNetCore.Http;
 using MultiTenantAPI.Helpers;
 using System.Text.Json;
@@ -17,15 +17,20 @@ namespace MultiTenantAPI.Controllers
         // }
 
      [HttpPost("login")]
-        public IActionResult Login([FromHeader(Name = "X-Tenant-ID")] string tenantId, [FromBody] LoginRequest request)
+        public IActionResult Login([FromHeader(Name = "X-Tenant-ID")] string tenantId, [FromBody] User request)
         {
             if (string.IsNullOrEmpty(tenantId))
                 return BadRequest("Tenant ID header is required.");
-
+            // 1. Encrypt the original JSON (Username + Password)
+            string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(request));
+            // 2. Decrypt the payload back to verify and use it
+            string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
+            // 3. Deserialize decrypted JSON to get credentials
+            var login = JsonSerializer.Deserialize<User>(decryptedJson);
             // Simple static validation (replace with your own logic)
-            if (request.Username == "user" && request.Password == "password")
+            if (login.Username == "user" && login.Password == "password")
             {
-                var sessionInfo = $"{request.Username}|{tenantId}|{DateTime.UtcNow.AddHours(1):O}";
+                var sessionInfo = $"{login.Username}|{tenantId}|{DateTime.UtcNow.AddHours(1):O}";
                 var token = AesEncryption.Encrypt(sessionInfo);
 
                 HttpContext.Session.SetString("Token", token);
@@ -54,9 +59,9 @@ namespace MultiTenantAPI.Controllers
         }
     }
 
-    public class LoginRequest
-    {
-        public string Username { get; set; }
-        public string Password { get; set; }
-    }
+// public class LoginRequest
+    // {
+    //     public string Username { get; set; }
+    //     public string Password { get; set; }
+    // }
 }
