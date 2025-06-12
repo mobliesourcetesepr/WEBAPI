@@ -18,5 +18,6 @@ MultiTen.*
 *.log
 
 # Configuration files (if they contain secrets)
-appsettings.json
 appsettings.Development.json
+obj/Debug/net9.0/MultiTenantApi.AssemblyInfo.cs
+obj/Debug/net9.0/MultiTenantApi.AssemblyInfoInputs.cache
