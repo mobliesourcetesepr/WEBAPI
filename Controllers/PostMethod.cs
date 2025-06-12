@@ -16,7 +16,38 @@ namespace MultiTenantAPI.Controllers
         //     _sessionService = sessionService;
         // }
 
-     [HttpPost("login")]
+        // Simulated in-memory user store
+        private static Dictionary<string, string> _registeredUsers = new();
+
+
+        // 🆕 CREATE USER
+        [HttpPost("create-user")]
+        public IActionResult CreateUser([FromHeader(Name = "X-Tenant-ID")] string tenantId, [FromBody] User request)
+        {
+            if (string.IsNullOrEmpty(tenantId))
+                return BadRequest("Tenant ID header is required.");
+
+            if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
+                return BadRequest("Username and Password are required.");
+
+            string userKey = $"{tenantId}:{request.Username}";
+
+            if (_registeredUsers.ContainsKey(userKey))
+                return Conflict("User already exists.");
+
+            _registeredUsers[userKey] = request.Password;
+
+            return Ok(new
+            {
+                Message = "User created successfully.",
+                Username = request.Username,
+                Tenant = tenantId
+            });
+        }
+
+
+
+        [HttpPost("login")]
         public IActionResult Login([FromHeader(Name = "X-Tenant-ID")] string tenantId, [FromBody] User request)
         {
             if (string.IsNullOrEmpty(tenantId))
@@ -28,7 +59,11 @@ namespace MultiTenantAPI.Controllers
             // 3. Deserialize decrypted JSON to get credentials
             var login = JsonSerializer.Deserialize<User>(decryptedJson);
             // Simple static validation (replace with your own logic)
-            if (login.Username == "user" && login.Password == "password")
+
+
+
+            string userKey = $"{tenantId}:{login.Username}";
+            if (login != null && _registeredUsers.TryGetValue(userKey, out var correctPassword) && correctPassword == login.Password)
             {
                 var sessionInfo = $"{login.Username}|{tenantId}|{DateTime.UtcNow.AddHours(1):O}";
                 var token = AesEncryption.Encrypt(sessionInfo);
@@ -37,6 +72,19 @@ namespace MultiTenantAPI.Controllers
 
                 return Ok(new { Token = token });
             }
+
+
+
+            
+            // if (login.Username == "user" && login.Password == "password")
+            // {
+            //     var sessionInfo = $"{login.Username}|{tenantId}|{DateTime.UtcNow.AddHours(1):O}";
+            //     var token = AesEncryption.Encrypt(sessionInfo);
+
+            //     HttpContext.Session.SetString("Token", token);
+
+            //     return Ok(new { Token = token });
+            // }
 
             return Unauthorized("Invalid credentials.");
         }

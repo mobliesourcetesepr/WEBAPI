@@ -19,13 +19,14 @@ namespace MultiTenantAPI.Middleware
             var path = context.Request.Path.ToString().ToLower();
             Console.WriteLine("Requested Path: " + path);
             // Allow anonymous access to login, logout, swagger endpoints
-if (context.Request.Path.StartsWithSegments("/api/secure/login") ||
-    context.Request.Path.StartsWithSegments("/api/secure/validate") ||
-    context.Request.Path.StartsWithSegments("/swagger"))
-{
-    await _next(context);
-    return;
-}
+            if (context.Request.Path.StartsWithSegments("/api/secure/login") ||
+                context.Request.Path.StartsWithSegments("/api/secure/validate") ||
+                context.Request.Path.StartsWithSegments("/api/secure/create-user") ||
+                context.Request.Path.StartsWithSegments("/swagger"))
+            {
+                await _next(context);
+                return;
+            }
 
             var token = context.Session.GetString("Token");
             if (string.IsNullOrEmpty(token))
