@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using MultiTenantAPI.Helpers;
 using MultiTenantAPI.Data;
 using System.Text.Json;
+using Microsoft.IdentityModel.Tokens;
 namespace MultiTenantAPI.Controllers
 {
     [ApiController]
@@ -29,37 +30,57 @@ namespace MultiTenantAPI.Controllers
         [HttpPost("create-user")]
         public IActionResult CreateUser([FromHeader(Name = "X-Tenant-ID")] string tenantId, [FromBody] Admin admin)
         {
-            if (string.IsNullOrEmpty(tenantId))
-                return BadRequest("Tenant ID header is required.");
-            // ✅ Encrypt the incoming request (simulate secure transmission)
-            string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(admin));
-        
-            // ✅ Decrypt the payload back to original
-            string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
-        
-            // ✅ Deserialize to User object
-            var user = JsonSerializer.Deserialize<Admin>(decryptedJson);
-
-            if (string.IsNullOrEmpty(user.Username) || string.IsNullOrEmpty(user.Password)|| string.IsNullOrEmpty(user.Email))
-                return BadRequest("Username, Password, and Email are required.");
-            admin.TenantId = tenantId;
-
-
-            var exists = _context.Admins.Any(u => u.TenantId == tenantId && u.Username == user.Username && u.Email == user.Email);
-            if (exists)
-                return Conflict("User already exists.");
-            _context.Admins.Add(admin);
-            _context.SaveChanges();
-
-            return Ok(new
+            string XmlData = string.Empty;
+            try
             {
-                Message = "Admin created successfully.",
-                Username = admin.Username,
-                Tenant = tenantId
-            });
+
+                if (string.IsNullOrEmpty(tenantId))
+                    return BadRequest("Tenant ID header is required.");
+
+                // ✅ Encrypt the incoming request (simulate secure transmission)
+                string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(admin));
+
+                // ✅ Decrypt the payload back to original
+                string ReqTime = DateTime.Now.ToString();
+                string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
+                XmlData += "<Event><Data><RQ>" + decryptedJson + "</RQ></Data></Event>";
+                XmlData += "<ReqTime>" + ReqTime + "</ReqTime>";
+
+                // ✅ Deserialize to User object
+                var user = JsonSerializer.Deserialize<Admin>(decryptedJson);
+
+                if (string.IsNullOrEmpty(user.Username) || string.IsNullOrEmpty(user.Password) || string.IsNullOrEmpty(user.Email))
+                    return BadRequest("Username, Password, and Email are required.");
+                admin.TenantId = tenantId;
+
+                XmlData += "<RESPONSE>";
+                var exists = _context.Admins.Any(u => u.TenantId == tenantId && u.Username == user.Username && u.Email == user.Email);
+                XmlData+="<Data>"+exists+"</Data>";
+                if (exists)
+                    return Conflict("User already exists.");
+                string ResTime = DateTime.Now.ToString();
+                XmlData += "<ResTime>" + ResTime + "</ResTime>";
+                _context.Admins.Add(admin);
+                _context.SaveChanges();
+                XmlData += "</RESPONSE>";
+                XmlData += "</Event>";
+                Console.WriteLine(XmlData);
+               Logger.LogData(HttpContext.RequestServices,"E", "PostMethod", "CreateUser", XmlData);
+                return Ok(new
+                {
+                    Message = "Admin created successfully.",
+                    Username = admin.Username,
+                    Tenant = tenantId
+                });
+            }
+            catch (Exception ex)
+            {
+                XmlData += "<Exception>" + ex.Message.ToString() + "</Exception></RESPONSE>";
+                // Log error
+            Logger.LogData(HttpContext.RequestServices,"EX","PostMethod", "CreateUser", XmlData);
+                return StatusCode(500, "An error occurred while creating the user.");
+            }
         }
-
-
 
         [HttpPost("login")]
         public IActionResult Login([FromHeader(Name = "X-Tenant-ID")] string tenantId, [FromBody] User request)
@@ -67,34 +88,32 @@ namespace MultiTenantAPI.Controllers
             if (string.IsNullOrEmpty(tenantId))
                 return BadRequest("Tenant ID header is required.");
             // 1. Encrypt the original JSON (Username + Password)
-            string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(request));
-            // 2. Decrypt the payload back to verify and use it
-            string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
-            // 3. Deserialize decrypted JSON to get credentials
-            var login = JsonSerializer.Deserialize<User>(decryptedJson);
-              Console.WriteLine("Requested Path: " + login);
-            // Simple static validation (replace with your own logic)
+       
+                string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(request));
+                // 2. Decrypt the payload back to verify and use it
+                string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
+                // 3. Deserialize decrypted JSON to get credentials
+                var login = JsonSerializer.Deserialize<User>(decryptedJson);
+                Console.WriteLine("Requested Path: " + login.Username, login.Password);
+                // Simple static validation (replace with your own logic)
 
             var user = _context.Admins.FirstOrDefault(u =>
             u.Username == login.Username &&
-            u.Password ==  login.Password);
-
+            u.Password == login.Password);
+            if (user == null)
+            {
+                return Unauthorized("Invalid credentials.");
+            }
             HttpContext.Session.SetString("Email", user.Email);
             HttpContext.Session.SetString("Username", user.Username);
             HttpContext.Session.SetString("TenantId", user.TenantId);
-        
 
-            if (login.Username == user.Username && login.Password == user.Password)
-            {
-                var sessionInfo = $"{login.Username}|{tenantId}|{DateTime.UtcNow.AddHours(1):O}";
-                var token = AesEncryption.Encrypt(sessionInfo);
+            var sessionInfo = $"{login.Username}|{tenantId}|{DateTime.UtcNow.AddHours(1):O}";
+            var token = AesEncryption.Encrypt(sessionInfo);
+            HttpContext.Session.SetString("Token", token);
 
-                HttpContext.Session.SetString("Token", token);
-
-                return Ok(new { Token = token });
-            }
-            return Unauthorized("Invalid credentials.");
-        }
+            return Ok(new { Token = token });
+    }
 
 
         [HttpGet("validate")]

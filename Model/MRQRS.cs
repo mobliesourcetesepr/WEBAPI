@@ -18,4 +18,13 @@ namespace MultiTenantAPI.Models
         public string Email { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
+    public class LogDetail
+    {
+        public int Id { get; set; }
+        public string LogType { get; set; }
+        public string PageName { get; set; }
+        public string FunctionName { get; set; }
+        public string LogData { get; set; }
+        public DateTime CreatedOn { get; set; } = DateTime.Now;
+    }
 }
