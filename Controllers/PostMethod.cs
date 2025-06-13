@@ -65,6 +65,7 @@ namespace MultiTenantAPI.Controllers
                 XmlData += "</RESPONSE>";
                 XmlData += "</Event>";
                 Console.WriteLine(XmlData);
+                HttpContext.Session.SetString("username", admin.Username);
                Logger.LogData(HttpContext.RequestServices,"E", "PostMethod", "CreateUser", XmlData);
                 return Ok(new
                 {
@@ -115,6 +116,57 @@ namespace MultiTenantAPI.Controllers
             return Ok(new { Token = token });
     }
 
+
+[HttpPut("update-admin/{username}")]
+public IActionResult UpdateAdmin(string username, [FromBody] Admin updatedAdmin)
+{
+    try
+    {
+        // ✅ Encrypt and Decrypt to simulate secure transmission
+        string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(updatedAdmin));
+        string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
+        var AdminUpdate = JsonSerializer.Deserialize<Admin>(decryptedJson);
+
+        // ✅ Find existing admin
+        var existingAdmin = _context.Admins.FirstOrDefault(a => a.Username == username);
+        if (existingAdmin == null)
+            return NotFound("Admin not found.");
+
+        // ✅ Serialize old data for auditing
+        var oldData = JsonSerializer.Serialize(existingAdmin);
+
+        // ✅ Apply updates
+        existingAdmin.Username = AdminUpdate.Username;
+        existingAdmin.Password = AdminUpdate.Password;
+        existingAdmin.Email = AdminUpdate.Email;
+        existingAdmin.TenantId = AdminUpdate.TenantId;
+
+        _context.SaveChanges();
+
+        // ✅ Serialize new data for audit log
+        var newData = JsonSerializer.Serialize(existingAdmin);
+
+        // ✅ Create audit log
+        var audit = new AdminAudit
+        {
+            AdminId = existingAdmin.Id,
+            ChangedBy = HttpContext.Session.GetString("Username") ?? username,
+            ChangedAt = DateTime.UtcNow,
+            OldData = oldData,
+            NewData = newData,
+            ChangeType = "Update"
+        };
+
+        _context.AdminAudits.Add(audit);
+        _context.SaveChanges();
+
+        return Ok("Admin updated and audit logged.");
+    }
+    catch (Exception ex)
+    {
+        return StatusCode(500, $"An error occurred: {ex.Message}");
+    }
+}
 
         [HttpGet("validate")]
         public IActionResult Validate()

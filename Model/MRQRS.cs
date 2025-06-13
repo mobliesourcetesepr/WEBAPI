@@ -27,4 +27,16 @@ namespace MultiTenantAPI.Models
         public string LogData { get; set; }
         public DateTime CreatedOn { get; set; } = DateTime.Now;
     }
+
+public class AdminAudit
+{
+    public int Id { get; set; }
+    public int AdminId { get; set; }
+    public string ChangedBy { get; set; }
+    public DateTime ChangedAt { get; set; }
+    public string OldData { get; set; }
+    public string NewData { get; set; }
+    public string ChangeType { get; set; } // e.g., "Update"
+}
+
 }

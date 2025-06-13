@@ -12,7 +12,7 @@ namespace MultiTenantAPI.Helpers
                                     string logType,
                                     string pageName,
                                     string functionName,
-                                    string Message )
+                                    string Message)
         {
             try
             {
@@ -36,5 +36,25 @@ namespace MultiTenantAPI.Helpers
                 Console.WriteLine("Logging failed: " + ex.Message);
             }
         }
+        
+    //      public static void LogAudit(IServiceProvider services, Admin admin, string action, string changedBy, string changeDetails = "")
+    // {
+    //     using var scope = services.CreateScope();
+    //     var dbContext = scope.ServiceProvider.GetRequiredService<UserDbContext>();
+
+    //     var audit = new AdminAudit
+    //     {
+    //         TenantId = admin.TenantId,
+    //         Username = admin.Username,
+    //         Email = admin.Email,
+    //         Action = action,
+    //         ChangedBy = changedBy,
+    //         ChangedAt = DateTime.UtcNow,
+    //         ChangeDetails = changeDetails
+    //     };
+
+    //     dbContext.AdminAudits.Add(audit);
+    //     dbContext.SaveChanges();
+    // }
     }
 }

@@ -54,6 +54,41 @@ namespace MultiTenantApi.Migrations
                     b.ToTable("Admins");
                 });
 
+            modelBuilder.Entity("MultiTenantAPI.Models.AdminAudit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AdminId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ChangeType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ChangedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NewData")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OldData")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AdminAudits");
+                });
+
             modelBuilder.Entity("MultiTenantAPI.Models.LogDetail", b =>
                 {
                     b.Property<int>("Id")

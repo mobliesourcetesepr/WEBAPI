@@ -9,5 +9,7 @@ namespace MultiTenantAPI.Data
         public DbSet<Admin> Admins { get; set; }
         public DbSet<LogDetail> LogDetails { get; set; }
 
+        public DbSet<AdminAudit> AdminAudits { get; set; }
+
     }
 }

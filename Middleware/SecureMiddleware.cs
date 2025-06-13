@@ -22,6 +22,7 @@ namespace MultiTenantAPI.Middleware
             if (context.Request.Path.StartsWithSegments("/api/secure/login") ||
                 context.Request.Path.StartsWithSegments("/api/secure/validate") ||
                 context.Request.Path.StartsWithSegments("/api/secure/create-user") ||
+                context.Request.Path.StartsWithSegments("/api/secure/update-admin") ||
                 context.Request.Path.StartsWithSegments("/swagger"))
             {
                 await _next(context);
