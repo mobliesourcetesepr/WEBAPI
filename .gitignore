@@ -134,3 +134,4 @@ node_modules/
 /publish/*.exe
 /publish/*.pdb
 /publish/web.config
+publish/**/publish/

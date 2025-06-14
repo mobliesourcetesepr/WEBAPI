@@ -49,37 +49,46 @@ public class AdminUser
     
 }
 
-// Models/SubAgent.cs
-public class SubAgent
-{   [JsonIgnore]
-    public int Id { get; set; }
-    public string SubAgentId { get; set; } = string.Empty; // like "1SA"
-    public string Username { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-    // FK to AdminUser
-    public int AdminUserId { get; set; }
+    // Models/SubAgent.cs
+    public class SubAgent
+    {
+        [JsonIgnore]
+        public int Id { get; set; }
+        public string SubAgentId { get; set; } = string.Empty; // like "1SA"
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        // FK to AdminUser
+        public int AdminUserId { get; set; }
+        public bool CanLogin { get; set; } = false;
+        public bool CanUpdate { get; set; } = false;
    
 }
 
 
-// Models/AppUser.cs
-public class AppUser
-{
-    [JsonIgnore]
-    public int Id { get; set; }
-    public string UserId { get; set; } = string.Empty; // "1U"
-    public string Username { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-    public int SubAgentId { get; set; }
-   
+    // Models/AppUser.cs
+    public class AppUser
+    {
+        [JsonIgnore]
+        public int Id { get; set; }
+        public string UserId { get; set; } = string.Empty; // "1U"
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public int SubAgentId { get; set; }
+        public bool CanLogin { get; set; } = false;
+        public bool CanUpdate { get; set; } = false;
 }
 
-// Models/LoginRequest.cs
-public class LoginRequest
+public class PermissionModel
 {
-    public string Username { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
+    public bool CanLogin { get; set; }
+    public bool CanUpdate { get; set; }
 }
+    // Models/LoginRequest.cs
+    public class LoginRequest
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
 
 
 

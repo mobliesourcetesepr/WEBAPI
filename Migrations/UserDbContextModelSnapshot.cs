@@ -122,6 +122,12 @@ namespace MultiTenantApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("CanLogin")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("CanUpdate")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -184,6 +190,12 @@ namespace MultiTenantApi.Migrations
 
                     b.Property<int>("AdminUserId")
                         .HasColumnType("int");
+
+                    b.Property<bool>("CanLogin")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("CanUpdate")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Password")
                         .IsRequired()
