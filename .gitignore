@@ -129,3 +129,8 @@ node_modules/
 # Yarn
 .yarn/
 .pnp.*
+/publish/*.dll
+/publish/*.json
+/publish/*.exe
+/publish/*.pdb
+/publish/web.config

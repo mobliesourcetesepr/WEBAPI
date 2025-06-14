@@ -5,6 +5,7 @@ using MultiTenantAPI.Helpers;
 using MultiTenantAPI.Data;
 using System.Text.Json;
 using Microsoft.IdentityModel.Tokens;
+using MultiTenantApi.Attributes;
 namespace MultiTenantAPI.Controllers
 {
     [ApiController]
@@ -76,10 +77,11 @@ namespace MultiTenantAPI.Controllers
     }
 
         [HttpPost("register-subagent")]
+        [SwaggerIgnore]
         public IActionResult RegisterSubAgent(SubAgent agent)
         {
-          
-                    string XmlData = string.Empty;
+
+            string XmlData = string.Empty;
             try
             {
 
@@ -104,8 +106,8 @@ namespace MultiTenantAPI.Controllers
                 string ResTime = DateTime.Now.ToString();
                 XmlData += "<ResTime>" + ResTime + "</ResTime>";
                 agent.SubAgentId = $"{agent.AdminUserId}SA";
-            _context.SubAgents.Add(agent);
-            _context.SaveChanges();
+                _context.SubAgents.Add(agent);
+                _context.SaveChanges();
                 XmlData += "</RESPONSE>";
                 XmlData += "</Event>";
                 Logger.LogData(HttpContext.RequestServices, "E", "PostMethod", "Createsubagent", XmlData);
@@ -122,10 +124,10 @@ namespace MultiTenantAPI.Controllers
                 Logger.LogData(HttpContext.RequestServices, "EX", "PostMethod", "subagent", XmlData);
                 return StatusCode(500, "An error occurred while creating the user.");
             }
-            
-        
 
-    }
+
+
+        }
 
     [HttpPost("register-user")]
     public IActionResult RegisterUser(AppUser user)

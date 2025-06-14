@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.DataProtection;  // <-- Add this
 using Microsoft.EntityFrameworkCore;
 using MultiTenantAPI.Data;
 using System.IO;
+using MultiTenantApi.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +31,10 @@ builder.Services.AddHttpContextAccessor();
 //     else
 //         options.UseSqlServer(connectionString);
 // });
+builder.Services.AddSwaggerGen(options =>
+{
+    options.DocumentFilter<SwaggerIgnoreFilter>();
+});
 
 
 builder.Services.AddDbContext<UserDbContext>(options =>
