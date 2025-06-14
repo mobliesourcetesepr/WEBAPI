@@ -25,6 +25,158 @@ namespace MultiTenantAPI.Controllers
             _context = context;
         }
 
+        [HttpPost("register-admin")]
+        public IActionResult RegisterAdmin(AdminUser admin)
+        {
+            string XmlData = string.Empty;
+            try
+            {
+
+                string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(admin));
+
+                // ✅ Decrypt the payload back to original
+                string ReqTime = DateTime.Now.ToString();
+                string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
+                XmlData += "<Event><Data><RQ>" + decryptedJson + "</RQ></Data></Event>";
+                XmlData += "<ReqTime>" + ReqTime + "</ReqTime>";
+
+                // ✅ Deserialize to User object
+                var user = JsonSerializer.Deserialize<Admin>(decryptedJson);
+
+                if (string.IsNullOrEmpty(user.Username) || string.IsNullOrEmpty(user.Password))
+                    return BadRequest("Username, Password, and Email are required.");
+                XmlData += "<RESPONSE>";
+                var exists = _context.Admins.Any(u => u.Username == user.Username);
+                XmlData += "<Data>" + exists + "</Data>";
+                if (exists)
+                    return Conflict("User already exists.");
+                string ResTime = DateTime.Now.ToString();
+                XmlData += "<ResTime>" + ResTime + "</ResTime>";
+                admin.AdminId = $"{_context.AdminUser.Count() + 1}A";
+                _context.AdminUser.Add(admin);
+                _context.SaveChanges();
+                XmlData += "</RESPONSE>";
+                XmlData += "</Event>";
+                Logger.LogData(HttpContext.RequestServices, "E", "PostMethod", "CreateUser", XmlData);
+                return Ok(new
+                {
+                    Message = "Admin created successfully.",
+
+                });
+            }
+            catch (Exception ex)
+            {
+                XmlData += "<Exception>" + ex.Message.ToString() + "</Exception></RESPONSE>";
+                // Log error
+                Logger.LogData(HttpContext.RequestServices, "EX", "PostMethod", "CreateUser", XmlData);
+                return StatusCode(500, "An error occurred while creating the user.");
+            }
+
+
+    }
+
+        [HttpPost("register-subagent")]
+        public IActionResult RegisterSubAgent(SubAgent agent)
+        {
+          
+                    string XmlData = string.Empty;
+            try
+            {
+
+                string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(agent));
+
+                // ✅ Decrypt the payload back to original
+                string ReqTime = DateTime.Now.ToString();
+                string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
+                XmlData += "<Event><Data><RQ>" + decryptedJson + "</RQ></Data></Event>";
+                XmlData += "<ReqTime>" + ReqTime + "</ReqTime>";
+
+                // ✅ Deserialize to User object
+                var user = JsonSerializer.Deserialize<Admin>(decryptedJson);
+
+                if (string.IsNullOrEmpty(user.Username) || string.IsNullOrEmpty(user.Password))
+                    return BadRequest("Username, Password, and Email are required.");
+                XmlData += "<RESPONSE>";
+                var exists = _context.Admins.Any(u => u.Username == user.Username);
+                XmlData += "<Data>" + exists + "</Data>";
+                if (exists)
+                    return Conflict("User already exists.");
+                string ResTime = DateTime.Now.ToString();
+                XmlData += "<ResTime>" + ResTime + "</ResTime>";
+                agent.SubAgentId = $"{agent.AdminUserId}SA";
+            _context.SubAgents.Add(agent);
+            _context.SaveChanges();
+                XmlData += "</RESPONSE>";
+                XmlData += "</Event>";
+                Logger.LogData(HttpContext.RequestServices, "E", "PostMethod", "Createsubagent", XmlData);
+                return Ok(new
+                {
+                    Message = "SubAgent created successfully.",
+
+                });
+            }
+            catch (Exception ex)
+            {
+                XmlData += "<Exception>" + ex.Message.ToString() + "</Exception></RESPONSE>";
+                // Log error
+                Logger.LogData(HttpContext.RequestServices, "EX", "PostMethod", "subagent", XmlData);
+                return StatusCode(500, "An error occurred while creating the user.");
+            }
+            
+        
+
+    }
+
+    [HttpPost("register-user")]
+    public IActionResult RegisterUser(AppUser user)
+    {
+
+                    string XmlData = string.Empty;
+            try
+            {
+
+                string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(user));
+
+                // ✅ Decrypt the payload back to original
+                string ReqTime = DateTime.Now.ToString();
+                string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
+                XmlData += "<Event><Data><RQ>" + decryptedJson + "</RQ></Data></Event>";
+                XmlData += "<ReqTime>" + ReqTime + "</ReqTime>";
+
+                // ✅ Deserialize to User object
+                var Appuser = JsonSerializer.Deserialize<Admin>(decryptedJson);
+
+                if (string.IsNullOrEmpty(Appuser.Username) || string.IsNullOrEmpty(Appuser.Password))
+                    return BadRequest("Username, Password, and Email are required.");
+                XmlData += "<RESPONSE>";
+                var exists = _context.Admins.Any(u => u.Username == user.Username);
+                XmlData += "<Data>" + exists + "</Data>";
+                if (exists)
+                    return Conflict("User already exists.");
+                string ResTime = DateTime.Now.ToString();
+                XmlData += "<ResTime>" + ResTime + "</ResTime>";
+                        user.UserId = $"{user.SubAgentId}U";
+                _context.AppUsers.Add(user);
+        _context.SaveChanges();
+                XmlData += "</RESPONSE>";
+                XmlData += "</Event>";
+                Logger.LogData(HttpContext.RequestServices, "E", "PostMethod", "CreateAppUser", XmlData);
+                return Ok(new
+                {
+                    Message = "AppUser created successfully.",
+
+                });
+            }
+            catch (Exception ex)
+            {
+                XmlData += "<Exception>" + ex.Message.ToString() + "</Exception></RESPONSE>";
+                // Log error
+                Logger.LogData(HttpContext.RequestServices, "EX", "PostMethod", "CreateAppUser", XmlData);
+                return StatusCode(500, "An error occurred while creating the user.");
+            }
+    }
+
+
 
         // 🆕 CREATE USER
         [HttpPost("create-user")]

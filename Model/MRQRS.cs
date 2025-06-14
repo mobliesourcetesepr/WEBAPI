@@ -28,15 +28,59 @@ namespace MultiTenantAPI.Models
         public DateTime CreatedOn { get; set; } = DateTime.Now;
     }
 
-public class AdminAudit
+    public class AdminAudit
+    {
+        public int Id { get; set; }
+        public int AdminId { get; set; }
+        public string ChangedBy { get; set; }
+        public DateTime ChangedAt { get; set; }
+        public string OldData { get; set; }
+        public string NewData { get; set; }
+        public string ChangeType { get; set; } // e.g., "Update"
+    }
+
+public class AdminUser
 {
+    [JsonIgnore]
     public int Id { get; set; }
-    public int AdminId { get; set; }
-    public string ChangedBy { get; set; }
-    public DateTime ChangedAt { get; set; }
-    public string OldData { get; set; }
-    public string NewData { get; set; }
-    public string ChangeType { get; set; } // e.g., "Update"
+    public string AdminId { get; set; } = string.Empty; // "1A"
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    
 }
+
+// Models/SubAgent.cs
+public class SubAgent
+{   [JsonIgnore]
+    public int Id { get; set; }
+    public string SubAgentId { get; set; } = string.Empty; // like "1SA"
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    // FK to AdminUser
+    public int AdminUserId { get; set; }
+   
+}
+
+
+// Models/AppUser.cs
+public class AppUser
+{
+    [JsonIgnore]
+    public int Id { get; set; }
+    public string UserId { get; set; } = string.Empty; // "1U"
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public int SubAgentId { get; set; }
+   
+}
+
+// Models/LoginRequest.cs
+public class LoginRequest
+{
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}
+
+
 
 }
