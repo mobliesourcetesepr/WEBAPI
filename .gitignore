@@ -135,3 +135,13 @@ node_modules/
 /publish/*.pdb
 /publish/web.config
 publish/**/publish/
+
+# Ignore platform-specific runtime folders and binaries
+runtimes/
+**/runtimes/
+
+
+# Ignore .dll, .exe, and .pdb files (optional but recommended)
+*.dll
+*.exe
+*.pdb
