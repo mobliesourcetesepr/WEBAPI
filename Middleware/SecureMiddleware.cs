@@ -28,6 +28,9 @@ namespace MultiTenantAPI.Middleware
                 context.Request.Path.StartsWithSegments("/api/secure/register-user") ||
                 context.Request.Path.StartsWithSegments("/api/secure/admin/set-subagent-rights") ||
                 context.Request.Path.StartsWithSegments("/api/secure/admin/set-appuser-rights") ||
+                context.Request.Path.StartsWithSegments("/api/admin-secure/dashboard") ||
+                context.Request.Path.StartsWithSegments("/api/admin-secure/report") ||
+                context.Request.Path.StartsWithSegments("/api/admin-secure/login") ||
                 context.Request.Path.StartsWithSegments("/swagger"))
             {
                 await _next(context);

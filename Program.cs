@@ -72,6 +72,9 @@ app.UseSession();
 // Authentication middleware using session tokens
 app.UseMiddleware<SessionAuthMiddleware>();
 
+app.UseMiddleware<AuthTokenMiddleware>();     // Sets context from AES token
+
+
 app.UseAuthorization();
 
 app.MapControllers();

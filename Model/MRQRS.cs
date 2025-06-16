@@ -39,15 +39,19 @@ namespace MultiTenantAPI.Models
         public string ChangeType { get; set; } // e.g., "Update"
     }
 
-public class AdminUser
-{
-    [JsonIgnore]
-    public int Id { get; set; }
-    public string AdminId { get; set; } = string.Empty; // "1A"
-    public string Username { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-    
-}
+    public class AdminUser
+    {
+        [JsonIgnore]
+        public int Id { get; set; }
+        public string AdminId { get; set; } = string.Empty; // "1A"
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+          [JsonIgnore]
+        public string Role { get; set; } = "Admin"; // ✅ Default value
+
+
+
+    }
 
     // Models/SubAgent.cs
     public class SubAgent
@@ -89,7 +93,15 @@ public class PermissionModel
         public string Username { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
     }
+    public class AuthPayload
+    {
+        public string Username { get; set; }
+        public string Role { get; set; }
 
-
-
+    }
+    public class ReportModel
+    {
+        public string Title { get; set; }
+        public string Description { get; set; }
+    }
 }
