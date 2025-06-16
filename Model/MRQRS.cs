@@ -46,7 +46,7 @@ namespace MultiTenantAPI.Models
         public string AdminId { get; set; } = string.Empty; // "1A"
         public string Username { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
-          [JsonIgnore]
+        [JsonIgnore]
         public string Role { get; set; } = "Admin"; // ✅ Default value
 
 
@@ -65,8 +65,8 @@ namespace MultiTenantAPI.Models
         public int AdminUserId { get; set; }
         public bool CanLogin { get; set; } = false;
         public bool CanUpdate { get; set; } = false;
-   
-}
+
+    }
 
 
     // Models/AppUser.cs
@@ -80,13 +80,13 @@ namespace MultiTenantAPI.Models
         public int SubAgentId { get; set; }
         public bool CanLogin { get; set; } = false;
         public bool CanUpdate { get; set; } = false;
-}
+    }
 
-public class PermissionModel
-{
-    public bool CanLogin { get; set; }
-    public bool CanUpdate { get; set; }
-}
+    public class PermissionModel
+    {
+        public bool CanLogin { get; set; }
+        public bool CanUpdate { get; set; }
+    }
     // Models/LoginRequest.cs
     public class LoginRequest
     {
@@ -104,4 +104,13 @@ public class PermissionModel
         public string Title { get; set; }
         public string Description { get; set; }
     }
+    
+    public class LogEntry
+{
+    public int Id { get; set; }
+    public string Level { get; set; } // e.g., Information, Error
+    public string Message { get; set; }
+    public string Source { get; set; }
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+}
 }

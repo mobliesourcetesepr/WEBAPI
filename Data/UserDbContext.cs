@@ -11,7 +11,7 @@ namespace MultiTenantAPI.Data
         public DbSet<AdminUser> AdminUser { get; set; }
         public DbSet<SubAgent> SubAgents { get; set; }
         public DbSet<AppUser> AppUsers { get; set; }  
-
+        public DbSet<LogEntry> Logs { get; set; }
 
     }
 }

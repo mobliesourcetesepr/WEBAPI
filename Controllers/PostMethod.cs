@@ -5,6 +5,7 @@ using MultiTenantAPI.Helpers;
 using MultiTenantAPI.Data;
 using System.Text.Json;
 using Microsoft.IdentityModel.Tokens;
+using MultiTenantApi.Attributes;
 namespace MultiTenantAPI.Controllers
 {
     [ApiController]
@@ -74,9 +75,8 @@ namespace MultiTenantAPI.Controllers
 
 
     }
-
+        [SwaggerIgnore]
         [HttpPost("register-subagent")]
-        
         public IActionResult RegisterSubAgent(SubAgent agent)
         {
 

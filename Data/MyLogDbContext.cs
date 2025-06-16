@@ -8,5 +8,6 @@ namespace MultiTenantAPI.Data
         public MyLogDbContext(DbContextOptions<MyLogDbContext> options) : base(options) { }
         public DbSet<AdminUser> AdminUser { get; set; }
         public DbSet<LogDetail> LogDetails { get; set; }
+        public DbSet<LogEntry> Logs { get; set; }
     }
 }

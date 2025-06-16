@@ -5,6 +5,7 @@ using MultiTenantAPI.Helpers;
 using MultiTenantAPI.Models;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using MultiTenantApi.Attributes;
 namespace MultiTenantAPI.Controllers
 {
     [Route("api/admin-secure")]
@@ -13,61 +14,115 @@ namespace MultiTenantAPI.Controllers
     {
         private readonly UserDbContext _context;
 
-        public SecureAdminController(UserDbContext context)
+        private readonly MyLogDbContext _logContext;
+
+    public SecureAdminController(UserDbContext context, MyLogDbContext logContext)
+{
+    _context = context;
+    _logContext = logContext;
+}
+
+
+
+[HttpPost("register-admin")]
+public IActionResult RegisterAdmin(AdminUser admin)
+{
+    try
+    {
+        Log("Info", "Received admin registration request.");
+
+        string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(admin));
+        string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
+
+        var user = JsonSerializer.Deserialize<Admin>(decryptedJson);
+
+        if (string.IsNullOrEmpty(user.Username) || string.IsNullOrEmpty(user.Password))
         {
-            _context = context;
+            Log("Warning", "Missing required fields.");
+            return BadRequest("Username, Password, and Email are required.");
         }
 
+        var exists = _context.Admins.Any(u => u.Username == user.Username);
 
-     [HttpPost("register-admin")]
-        public IActionResult RegisterAdmin(AdminUser admin)
+        if (exists)
         {
-            string XmlData = string.Empty;
-            try
-            {
+            Log("Warning", $"User '{user.Username}' already exists.");
+            return Conflict("User already exists.");
+        }
 
-                string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(admin));
+        admin.AdminId = $"{_context.AdminUser.Count() + 1}A";
+        _context.AdminUser.Add(admin);
+        _context.SaveChanges();
 
-                // ✅ Decrypt the payload back to original
-                string ReqTime = DateTime.Now.ToString();
-                string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
-                XmlData += "<Event><Data><RQ>" + decryptedJson + "</RQ></Data></Event>";
-                XmlData += "<ReqTime>" + ReqTime + "</ReqTime>";
+        Log("Info", $"Admin '{admin.Username}' registered successfully.");
 
-                // ✅ Deserialize to User object
-                var user = JsonSerializer.Deserialize<Admin>(decryptedJson);
-
-                if (string.IsNullOrEmpty(user.Username) || string.IsNullOrEmpty(user.Password))
-                    return BadRequest("Username, Password, and Email are required.");
-                XmlData += "<RESPONSE>";
-                var exists = _context.Admins.Any(u => u.Username == user.Username);
-                XmlData += "<Data>" + exists + "</Data>";
-                if (exists)
-                    return Conflict("User already exists.");
-                string ResTime = DateTime.Now.ToString();
-                XmlData += "<ResTime>" + ResTime + "</ResTime>";
-                admin.AdminId = $"{_context.AdminUser.Count() + 1}A";
-                _context.AdminUser.Add(admin);
-                _context.SaveChanges();
-                XmlData += "</RESPONSE>";
-                XmlData += "</Event>";
-                Logger.LogData(HttpContext.RequestServices, "E", "PostMethod", "CreateUser", XmlData);
-                return Ok(new
-                {
-                    Message = "Admin created successfully.",
-
-                });
-            }
-            catch (Exception ex)
-            {
-                XmlData += "<Exception>" + ex.Message.ToString() + "</Exception></RESPONSE>";
-                // Log error
-                Logger.LogData(HttpContext.RequestServices, "EX", "PostMethod", "CreateUser", XmlData);
-                return StatusCode(500, "An error occurred while creating the user.");
-            }
-
-
+        return Ok(new { Message = "Admin created successfully." });
     }
+    catch (Exception ex)
+    {
+        Log("Error", $"Exception occurred: {ex.Message}");
+        return StatusCode(500, "An error occurred while creating the user.");
+    }
+}
+
+// Logging helper
+private void Log(string level, string message)
+{
+    _logContext.Logs.Add(new LogEntry
+    {
+        Level = level,
+        Message = message,
+        Source = "RegisterAdmin"
+    });
+    _logContext.SaveChanges();
+}
+
+
+
+        //[SwaggerIgnore]
+        //  [HttpPost("register-admin")]
+        //     public IActionResult RegisterAdmin(AdminUser admin)
+        //     {
+        //         string XmlData = string.Empty;
+        //         try
+        //         {
+
+        //             string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(admin));
+
+        //             // ✅ Decrypt the payload back to original
+        //             string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
+
+        //             // ✅ Deserialize to User object
+        //             var user = JsonSerializer.Deserialize<Admin>(decryptedJson);
+
+        //             if (string.IsNullOrEmpty(user.Username) || string.IsNullOrEmpty(user.Password))
+        //                 return BadRequest("Username, Password, and Email are required.");
+
+        //             var exists = _context.Admins.Any(u => u.Username == user.Username);
+
+        //             if (exists)
+        //                 return Conflict("User already exists.");
+
+
+        //             admin.AdminId = $"{_context.AdminUser.Count() + 1}A";
+        //             _context.AdminUser.Add(admin);
+        //             _context.SaveChanges();
+
+
+        //             return Ok(new
+        //             {
+        //                 Message = "Admin created successfully.",
+
+        //             });
+        //         }
+        //         catch (Exception ex)
+        //         {
+
+        //             return StatusCode(500, "An error occurred while creating the user.");
+        //         }
+
+
+        // }
 
         [HttpGet("dashboard")]
         [AllowRole("Admin")]

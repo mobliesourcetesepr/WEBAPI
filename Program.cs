@@ -34,6 +34,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSwaggerGen(options =>
 {
     options.DocumentFilter<SwaggerIgnoreFilter>();
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "MultiTenantAPI", Version = "v1" });
 });
 
 
@@ -50,18 +51,22 @@ Console.WriteLine($"ActiveDatabase: {dbFlag}");
 if (dbFlag == "mysql")
 {
 
-   builder.Services.AddDbContext<UserDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerConnection"))); 
-    
-builder.Services.AddDbContext<MyLogDbContext>(options =>
-    options.UseMySql(builder.Configuration.GetConnectionString("MySqlLogConnection"),
-        ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("MySqlLogConnection")))
-);
+    builder.Services.AddDbContext<UserDbContext>(options =>
+     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerConnection")));
+
+    builder.Services.AddDbContext<MyLogDbContext>(options =>
+        options.UseMySql(builder.Configuration.GetConnectionString("MySqlLogConnection"),
+            ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("MySqlLogConnection")))
+    );
 }
 else if (dbFlag == "SqlServer")
 {
-builder.Services.AddDbContext<UserDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerConnection")));
+     builder.Services.AddDbContext<UserDbContext>(options =>
+        options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerConnection")));
+
+    builder.Services.AddDbContext<MyLogDbContext>(options =>
+        options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerConnection"))
+    );
 }
 else
 {
