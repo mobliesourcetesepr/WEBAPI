@@ -8,53 +8,107 @@ namespace MultiTenantAPI.Helpers
 {
     public static class Logger
     {
-        public static void LogData(IServiceProvider services,
-                                    string logType,
-                                    string pageName,
-                                    string functionName,
-                                    string Message)
+          public static void LogData(IServiceProvider services,
+                                   string logType,
+                                   string pageName,
+                                   string functionName,
+                                   string message)
         {
             try
             {
                 using var scope = services.CreateScope();
-                var dbContext = scope.ServiceProvider.GetRequiredService<MyLogDbContext>();
+                var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
-                var log = new LogDetail
+                var dbFlag = config["ActiveDatabase"];
+Console.WriteLine($"ActiveDatabaseloogermysql: {dbFlag}");
+                if (dbFlag == "mysql")
                 {
-                    LogType = logType,
-                    PageName = pageName,
-                    FunctionName = functionName,
-                    LogData = Message,
-                    CreatedOn = DateTime.Now
-                };
+                    var logDb = scope.ServiceProvider.GetRequiredService<MyLogDbContext>();
 
-                dbContext.LogDetails.Add(log);
-                dbContext.SaveChanges();
+                    logDb.LogDetails.Add(new LogDetail
+                    {
+                        LogType = logType,
+                        PageName = pageName,
+                        FunctionName = functionName,
+                        LogData = message,
+                        CreatedOn = DateTime.Now
+                    });
+
+                    logDb.SaveChanges();
+                }
+                else if (dbFlag == "SqlServer")
+                {
+                    Console.WriteLine($"ActiveDatabaseloggersqlserver: {dbFlag}");
+                    var userDb = scope.ServiceProvider.GetRequiredService<UserDbContext>();
+
+                    userDb.LogDetails.Add(new LogDetail
+                    {
+                        LogType = logType,
+                        PageName = pageName,
+                        FunctionName = functionName,
+                        LogData = message,
+                        CreatedOn = DateTime.Now
+                    });
+
+                    userDb.SaveChanges();
+                }
+                else
+                {
+                    Console.WriteLine("DbFlag not configured correctly in appsettings.json");
+                }
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Logging failed: " + ex.Message);
             }
         }
-        
-    //      public static void LogAudit(IServiceProvider services, Admin admin, string action, string changedBy, string changeDetails = "")
-    // {
-    //     using var scope = services.CreateScope();
-    //     var dbContext = scope.ServiceProvider.GetRequiredService<UserDbContext>();
+        // public static void LogData(IServiceProvider services,
+        //                             string logType,
+        //                             string pageName,
+        //                             string functionName,
+        //                             string Message)
+        // {
+        //     try
+        //     {
+        //         using var scope = services.CreateScope();
+        //         var dbContext = scope.ServiceProvider.GetRequiredService<MyLogDbContext>();
 
-    //     var audit = new AdminAudit
-    //     {
-    //         TenantId = admin.TenantId,
-    //         Username = admin.Username,
-    //         Email = admin.Email,
-    //         Action = action,
-    //         ChangedBy = changedBy,
-    //         ChangedAt = DateTime.UtcNow,
-    //         ChangeDetails = changeDetails
-    //     };
+        //         var log = new LogDetail
+        //         {
+        //             LogType = logType,
+        //             PageName = pageName,
+        //             FunctionName = functionName,
+        //             LogData = Message,
+        //             CreatedOn = DateTime.Now
+        //         };
 
-    //     dbContext.AdminAudits.Add(audit);
-    //     dbContext.SaveChanges();
-    // }
+        //         dbContext.LogDetails.Add(log);
+        //         dbContext.SaveChanges();
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         Console.WriteLine("Logging failed: " + ex.Message);
+        //     }
+        // }
+
+        //      public static void LogAudit(IServiceProvider services, Admin admin, string action, string changedBy, string changeDetails = "")
+        // {
+        //     using var scope = services.CreateScope();
+        //     var dbContext = scope.ServiceProvider.GetRequiredService<UserDbContext>();
+
+        //     var audit = new AdminAudit
+        //     {
+        //         TenantId = admin.TenantId,
+        //         Username = admin.Username,
+        //         Email = admin.Email,
+        //         Action = action,
+        //         ChangedBy = changedBy,
+        //         ChangedAt = DateTime.UtcNow,
+        //         ChangeDetails = changeDetails
+        //     };
+
+        //     dbContext.AdminAudits.Add(audit);
+        //     dbContext.SaveChanges();
+        // }
     }
 }

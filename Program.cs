@@ -7,7 +7,7 @@ using System.IO;
 using MultiTenantApi.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
-
+var config = builder.Configuration;
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -37,23 +37,36 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 
-builder.Services.AddDbContext<UserDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerConnection")));
-
-// builder.Services.AddDbContext<MyLogDbContext>(options =>
-//     options.UseMySql(builder.Configuration.GetConnectionString("MySqlLogDb"),
-//         ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("MySqlLogDb")))
-// );
+// builder.Services.AddDbContext<UserDbContext>(options =>
+//     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerConnection")));
 
 // builder.Services.AddDbContext<MyLogDbContext>(options =>
 //     options.UseMySql(builder.Configuration.GetConnectionString("MySqlLogConnection"),
 //         ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("MySqlLogConnection")))
 // );
+
+var dbFlag = config["ActiveDatabase"];
+Console.WriteLine($"ActiveDatabase: {dbFlag}");
+if (dbFlag == "mysql")
+{
+
+   builder.Services.AddDbContext<UserDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerConnection"))); 
+    
 builder.Services.AddDbContext<MyLogDbContext>(options =>
     options.UseMySql(builder.Configuration.GetConnectionString("MySqlLogConnection"),
         ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("MySqlLogConnection")))
 );
-
+}
+else if (dbFlag == "SqlServer")
+{
+builder.Services.AddDbContext<UserDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerConnection")));
+}
+else
+{
+    throw new Exception("Invalid DbFlag value. Use 'mysql' or 'mssql'.");
+}
 
 
 // Enable Session support

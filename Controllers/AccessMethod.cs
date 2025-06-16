@@ -18,6 +18,7 @@ namespace MultiTenantAPI.Controllers
             _context = context;
         }
 
+
      [HttpPost("register-admin")]
         public IActionResult RegisterAdmin(AdminUser admin)
         {

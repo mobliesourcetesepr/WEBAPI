@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MultiTenantApi")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7e74dce55866ad3f9f0ab04953d962dd4493bd41")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c1db847a73293a11bfbd4a01400949575a72b305")]
 [assembly: System.Reflection.AssemblyProductAttribute("MultiTenantApi")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MultiTenantApi")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
