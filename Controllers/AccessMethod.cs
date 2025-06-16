@@ -23,59 +23,139 @@ namespace MultiTenantAPI.Controllers
 }
 
 
-
 [HttpPost("register-admin")]
 public IActionResult RegisterAdmin(AdminUser admin)
 {
+    string source = "/api/secure/register-admin";
+    var logMessages = new List<(string Level, string Message)>();
+    string finalMessage = string.Empty;
+
     try
     {
-        Log("Info", "Received admin registration request.");
+        logMessages.Add(("Information", "Received admin registration request."));
 
         string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(admin));
         string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
+        logMessages.Add(("Information", "Payload encrypted and decrypted successfully."));
 
         var user = JsonSerializer.Deserialize<Admin>(decryptedJson);
 
-        if (string.IsNullOrEmpty(user.Username) || string.IsNullOrEmpty(user.Password))
+        if (string.IsNullOrEmpty(user?.Username) || string.IsNullOrEmpty(user.Password))
         {
-            Log("Warning", "Missing required fields.");
-            return BadRequest("Username, Password, and Email are required.");
+            finalMessage = "Username and Password are required.";
+            logMessages.Add(("Warning", finalMessage));
+            return BadRequest(finalMessage);
         }
 
-        var exists = _context.Admins.Any(u => u.Username == user.Username);
-
-        if (exists)
+        if (_context.Admins.Any(u => u.Username == user.Username))
         {
-            Log("Warning", $"User '{user.Username}' already exists.");
-            return Conflict("User already exists.");
+            finalMessage = $"User '{user.Username}' already exists.";
+            logMessages.Add(("Warning", finalMessage));
+            return Conflict(finalMessage);
         }
 
         admin.AdminId = $"{_context.AdminUser.Count() + 1}A";
         _context.AdminUser.Add(admin);
         _context.SaveChanges();
 
-        Log("Info", $"Admin '{admin.Username}' registered successfully.");
+        finalMessage = $"Admin '{admin.Username}' registered successfully.";
+        logMessages.Add(("Information", finalMessage));
 
-        return Ok(new { Message = "Admin created successfully." });
+        return Ok(new { Message = finalMessage });
     }
     catch (Exception ex)
     {
-        Log("Error", $"Exception occurred: {ex.Message}");
+        finalMessage = $"Exception: {ex.Message}";
+        logMessages.Add(("Error", finalMessage));
         return StatusCode(500, "An error occurred while creating the user.");
+    }
+    finally
+    {
+                try
+                {
+                    // Determine most severe log level
+                    string overallLevel = "Information"; // default
+                    if (logMessages.Any(m => m.Level == "Error"))
+                        overallLevel = "Error";
+                    else if (logMessages.Any(m => m.Level == "Warning"))
+                        overallLevel = "Warning";
+
+                    // Combine all messages with level tags
+                    string combinedMessage = string.Join(" | ", logMessages.Select(m => $"[{m.Level}] {m.Message}"));
+
+                    var log = new LogEntry
+                    {
+                        Level = overallLevel,
+                        Message = combinedMessage,
+                        Source = source,
+                        Timestamp = DateTime.UtcNow
+                    };
+
+                    _logContext.Logs.Add(log);
+                    _logContext.SaveChanges();
+                }
+                catch(Exception ex)
+                {
+                     //return StatusCode(500, "An error occurred while creating the user.");
+            // Do nothing — logging failure shouldn't break the request
+                }
     }
 }
 
-// Logging helper
-private void Log(string level, string message)
-{
-    _logContext.Logs.Add(new LogEntry
-    {
-        Level = level,
-        Message = message,
-        Source = "RegisterAdmin"
-    });
-    _logContext.SaveChanges();
-}
+
+
+        // [HttpPost("register-admin")]
+        // public IActionResult RegisterAdmin(AdminUser admin)
+        // {
+        //     try
+        //     {
+        //         Log("Info", "Received admin registration request.");
+
+        //         string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(admin));
+        //         string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
+
+        //         var user = JsonSerializer.Deserialize<Admin>(decryptedJson);
+
+        //         if (string.IsNullOrEmpty(user.Username) || string.IsNullOrEmpty(user.Password))
+        //         {
+        //             Log("Warning", "Missing required fields.");
+        //             return BadRequest("Username, Password, and Email are required.");
+        //         }
+
+        //         var exists = _context.Admins.Any(u => u.Username == user.Username);
+
+        //         if (exists)
+        //         {
+        //             Log("Warning", $"User '{user.Username}' already exists.");
+        //             return Conflict("User already exists.");
+        //         }
+
+        //         admin.AdminId = $"{_context.AdminUser.Count() + 1}A";
+        //         _context.AdminUser.Add(admin);
+        //         _context.SaveChanges();
+
+        //         Log("Info", $"Admin '{admin.Username}' registered successfully.");
+
+        //         return Ok(new { Message = "Admin created successfully." });
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         Log("Error", $"Exception occurred: {ex.Message}");
+        //         return StatusCode(500, "An error occurred while creating the user.");
+        //     }
+        // }
+
+        // // Logging helper
+        // private void Log(string level, string message)
+        // {
+        //     _logContext.Logs.Add(new LogEntry
+        //     {
+        //         Level = level,
+        //         Message = message,
+        //         Source = "RegisterAdmin"
+        //     });
+        //     _logContext.SaveChanges();
+        // }
 
 
 
