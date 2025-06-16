@@ -122,10 +122,12 @@ namespace MultiTenantAPI.Controllers
                 Username = user.Username,
                 Role = user.Role,
             };
-
+       
             var json = JsonSerializer.Serialize(payload);
             var token = AesEncryption.Encrypt(json);
-
+         HttpContext.Session.SetString("Role", payload.Role);
+            HttpContext.Session.SetString("Token", token);
+        HttpContext.Session.SetString("Username", payload.Username);
             return Ok(new
             {
                 Message = "Login successful",
@@ -134,6 +136,82 @@ namespace MultiTenantAPI.Controllers
         }
 
 
+ [HttpPut("update-admin/{username}")]
+public IActionResult UpdateAdmin(string username, [FromBody] User updatedUser)
+{
+    try
+    {
+        var role = HttpContext.Session.GetString("Role");
+        var sessionUsername = HttpContext.Session.GetString("Username");
 
+        if (string.IsNullOrEmpty(role) || string.IsNullOrEmpty(sessionUsername))
+            return Unauthorized("User not logged in.");
+
+        // ✅ Only Admin or SubAgent/AppUser with CanUpdate rights can proceed
+        bool hasUpdatePermission = false;
+
+        if (role == "Admin")
+        {
+            hasUpdatePermission = true;
+        }
+        else if (role == "SubAgent")
+        {
+            var subAgent = _context.SubAgents.FirstOrDefault(sa => sa.Username == sessionUsername);
+            hasUpdatePermission = subAgent?.CanUpdate ?? false;
+        }
+        else if (role == "AppUser")
+        {
+            var appUser = _context.AppUsers.FirstOrDefault(u => u.Username == sessionUsername);
+            hasUpdatePermission = appUser?.CanUpdate ?? false;
+        }
+
+        if (!hasUpdatePermission)
+            return Unauthorized("Update rights not granted. Contact Admin.");
+
+        // ✅ Encrypt and Decrypt to simulate secure transmission
+        string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(updatedUser));
+        string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
+        var userUpdate = JsonSerializer.Deserialize<User>(decryptedJson);
+
+        // ✅ Find existing admin
+        var existingAdmin = _context.AdminUser.FirstOrDefault(a => a.Username == username);
+        if (existingAdmin == null)
+            return NotFound("Admin not found.");
+
+        // ✅ Serialize old data for auditing
+        var oldData = JsonSerializer.Serialize(existingAdmin);
+
+        // ✅ Apply updates
+        existingAdmin.Username = userUpdate.Username;
+        existingAdmin.Password = userUpdate.Password;
+
+
+        _context.SaveChanges();
+
+        // ✅ Serialize new data for audit log
+        var newData = JsonSerializer.Serialize(existingAdmin);
+
+        // ✅ Create audit log
+        var audit = new AdminAudit
+        {
+            AdminId = existingAdmin.Id,
+            ChangedBy = sessionUsername,
+            ChangedAt = DateTime.UtcNow,
+            OldData = oldData,
+            NewData = newData,
+            ChangeType = "Update"
+        };
+
+        _context.AdminAudits.Add(audit);
+        _context.SaveChanges();
+
+
+        return Ok("Admin updated and audit logged.");
+    }
+    catch (Exception ex)
+    {
+        return StatusCode(500, $"An error occurred: {ex.Message}");
+    }
+}
     }
 }

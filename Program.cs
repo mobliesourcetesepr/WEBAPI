@@ -45,6 +45,17 @@ builder.Services.AddDbContext<UserDbContext>(options =>
 //         ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("MySqlLogDb")))
 // );
 
+// builder.Services.AddDbContext<MyLogDbContext>(options =>
+//     options.UseMySql(builder.Configuration.GetConnectionString("MySqlLogConnection"),
+//         ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("MySqlLogConnection")))
+// );
+builder.Services.AddDbContext<MyLogDbContext>(options =>
+    options.UseMySql(builder.Configuration.GetConnectionString("MySqlLogConnection"),
+        ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("MySqlLogConnection")))
+);
+
+
+
 // Enable Session support
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>

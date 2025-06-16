@@ -168,3 +168,5 @@ D:\MOORTHY\New folder\MultiTenantApi\obj\Debug\net9.0\refint\MultiTenantApi.dll
 D:\MOORTHY\New folder\MultiTenantApi\obj\Debug\net9.0\MultiTenantApi.pdb
 D:\MOORTHY\New folder\MultiTenantApi\obj\Debug\net9.0\MultiTenantApi.genruntimeconfig.cache
 D:\MOORTHY\New folder\MultiTenantApi\obj\Debug\net9.0\ref\MultiTenantApi.dll
+D:\MOORTHY\New folder\MultiTenantApi\bin\Debug\net9.0\MySqlConnector.dll
+D:\MOORTHY\New folder\MultiTenantApi\bin\Debug\net9.0\Pomelo.EntityFrameworkCore.MySql.dll

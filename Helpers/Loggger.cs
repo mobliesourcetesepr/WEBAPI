@@ -17,7 +17,7 @@ namespace MultiTenantAPI.Helpers
             try
             {
                 using var scope = services.CreateScope();
-                var dbContext = scope.ServiceProvider.GetRequiredService<UserDbContext>();
+                var dbContext = scope.ServiceProvider.GetRequiredService<MyLogDbContext>();
 
                 var log = new LogDetail
                 {
