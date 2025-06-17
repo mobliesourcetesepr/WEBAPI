@@ -121,6 +121,7 @@ public class SessionStore
     public string Token { get; set; } = string.Empty;
     public DateTime IssuedAt { get; set; }
     public DateTime LastAccessedAt { get; set; } // NEW
+    public DateTime ExpiresAt { get; set; }
     public bool IsActive { get; set; } = true;
 }
 

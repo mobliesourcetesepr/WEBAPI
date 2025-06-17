@@ -9,5 +9,6 @@ namespace MultiTenantAPI.Data
         public DbSet<AdminUser> AdminUser { get; set; }
         public DbSet<LogDetail> LogDetails { get; set; }
         public DbSet<LogEntry> Logs { get; set; }
+        public DbSet<SessionStore> NewRecord { get; set; }
     }
 }

@@ -530,7 +530,7 @@ public IActionResult RegisterAdmin(AdminUser admin)
                 ReportId = Guid.NewGuid(),
                 report.Title,
                 report.Description,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             return Ok(new
@@ -596,8 +596,9 @@ public async Task<IActionResult> Login([FromBody] LoginRequest request)
 
         UserId = user.AdminId,
         Token = token,
-        IssuedAt = DateTime.UtcNow,
-        LastAccessedAt = DateTime.UtcNow,
+        IssuedAt = DateTime.Now,
+        ExpiresAt = DateTime.Now.AddMinutes(5),
+        LastAccessedAt = DateTime.Now,
         IsActive = true
     };
 
@@ -611,7 +612,24 @@ public async Task<IActionResult> Login([FromBody] LoginRequest request)
     });
 }
 
+  [HttpGet("protected")]
+    public IActionResult ProtectedApi([FromHeader(Name = "X-Session-Token")] string Sessiontoken)
+    {
+        var token = Request.Headers["X-Session-Token"].ToString();
 
+        var session = _context.SessionStores.FirstOrDefault(s =>
+            s.Token == token && s.IsActive && s.ExpiresAt > DateTime.Now);
+
+        if (session == null)
+            return Unauthorized("Session expired or invalid.");
+
+        // 🔁 Refresh session
+        session.LastAccessedAt = DateTime.Now;
+        session.ExpiresAt = DateTime.UtcNow.AddMinutes(5); // refresh expiry
+        _context.SaveChanges();
+
+        return Ok($"Welcome back, user: {session.UserId}");
+    }
 
 
         [HttpPut("update-admin/{username}")]
