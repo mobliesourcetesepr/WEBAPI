@@ -35,6 +35,7 @@ namespace MultiTenantAPI.Middleware
                 context.Request.Path.StartsWithSegments("/api/admin-secure/register-admin") ||
                 context.Request.Path.StartsWithSegments("/api/admin-secure/protected") ||
                 context.Request.Path.StartsWithSegments("/oauth/token") ||
+                context.Request.Path.StartsWithSegments("/oauth/protected") ||
                 context.Request.Path.StartsWithSegments("/swagger"))
             {
                 await _next(context);
