@@ -99,6 +99,8 @@ app.UseTenantMiddleware();
 app.UseSession();
 
 // Authentication middleware using session tokens
+//app.UseMiddleware<SessionMiddleware>();
+
 app.UseMiddleware<SessionAuthMiddleware>();
 
 app.UseMiddleware<AuthTokenMiddleware>();     // Sets context from AES token

@@ -23,84 +23,379 @@ namespace MultiTenantAPI.Controllers
 }
 
 
+
+
 [HttpPost("register-admin")]
 public IActionResult RegisterAdmin(AdminUser admin)
 {
     string source = "/api/secure/register-admin";
-    var logMessages = new List<(string Level, string Message)>();
+    string traceId = Guid.NewGuid().ToString();  // ✅ Unique Trace ID per request
+    var logBuilder = new System.Text.StringBuilder();
     string finalMessage = string.Empty;
+    string overallLevel = "Information";
+    int step = 0;
+    string methodName = nameof(RegisterAdmin);
 
     try
     {
-        logMessages.Add(("Information", "Received admin registration request."));
+        step++;
+        logBuilder.AppendLine($"[TraceId: {traceId}] [{methodName}] [Information] [Step {step}] Received admin registration request.");
 
+        step++;
+        logBuilder.AppendLine($"[TraceId: {traceId}] [{methodName}] [Information] [Step {step}] Encrypting payload.");
         string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(admin));
-        string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
-        logMessages.Add(("Information", "Payload encrypted and decrypted successfully."));
 
+        step++;
+        logBuilder.AppendLine($"[TraceId: {traceId}] [{methodName}] [Information] [Step {step}] Decrypting payload.");
+        string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
+
+        step++;
+        logBuilder.AppendLine($"[TraceId: {traceId}] [{methodName}] [Information] [Step {step}] Deserializing payload.");
         var user = JsonSerializer.Deserialize<Admin>(decryptedJson);
 
+        step++;
         if (string.IsNullOrEmpty(user?.Username) || string.IsNullOrEmpty(user.Password))
         {
-            finalMessage = "Username and Password are required.";
-            logMessages.Add(("Warning", finalMessage));
+            finalMessage = $"[Step {step}] [Code: E001] Username and Password are required. (E001: Missing credentials)";
+            overallLevel = "Warning";
+            logBuilder.AppendLine($"[TraceId: {traceId}] [{methodName}] [Warning] {finalMessage}");
             return BadRequest(finalMessage);
         }
 
-        if (_context.Admins.Any(u => u.Username == user.Username))
+        step++;
+        logBuilder.AppendLine($"[TraceId: {traceId}] [{methodName}] [Information] [Step {step}] Checking if user already exists.");
+        if (_context.AdminUser.Any(u => u.Username == user.Username))
         {
-            finalMessage = $"User '{user.Username}' already exists.";
-            logMessages.Add(("Warning", finalMessage));
+            finalMessage = $"[Step {step}] [Code: E002] User '{user.Username}' already exists. (E002: Duplicate user)";
+            overallLevel = "Warning";
+            logBuilder.AppendLine($"[TraceId: {traceId}] [{methodName}] [Warning] {finalMessage}");
             return Conflict(finalMessage);
         }
 
+        step++;
+        logBuilder.AppendLine($"[TraceId: {traceId}] [{methodName}] [Information] [Step {step}] Creating new admin ID.");
         admin.AdminId = $"{_context.AdminUser.Count() + 1}A";
+
+        step++;
+        logBuilder.AppendLine($"[TraceId: {traceId}] [{methodName}] [Information] [Step {step}] Adding new admin to database.");
         _context.AdminUser.Add(admin);
         _context.SaveChanges();
 
-        finalMessage = $"Admin '{admin.Username}' registered successfully.";
-        logMessages.Add(("Information", finalMessage));
+        step++;
+        finalMessage = $"[Step {step}] Admin '{admin.Username}' registered successfully.";
+        logBuilder.AppendLine($"[TraceId: {traceId}] [{methodName}] [Information] {finalMessage}");
 
-        return Ok(new { Message = finalMessage });
+        return Ok(new { TraceId = traceId, Message = finalMessage });
     }
     catch (Exception ex)
     {
-        finalMessage = $"Exception: {ex.Message}";
-        logMessages.Add(("Error", finalMessage));
+        step++;
+        finalMessage = $"[Step {step}] [Code: E999] Exception occurred: {ex.Message}" +
+                       $"{(ex.InnerException != null ? $" | Inner: {ex.InnerException.Message}" : "")} (E999: Unhandled exception)";
+        overallLevel = "Error";
+        logBuilder.AppendLine($"[TraceId: {traceId}] [{methodName}] [Error] {finalMessage}");
         return StatusCode(500, "An error occurred while creating the user.");
     }
     finally
     {
-                try
-                {
-                    // Determine most severe log level
-                    string overallLevel = "Information"; // default
-                    if (logMessages.Any(m => m.Level == "Error"))
-                        overallLevel = "Error";
-                    else if (logMessages.Any(m => m.Level == "Warning"))
-                        overallLevel = "Warning";
+        try
+        {
+            var logMessages = logBuilder.ToString();
+            var log = new LogEntry
+            {
+              
+                Level = overallLevel,
+                Message = logMessages.Trim(),
+                Source = source,
+                Timestamp = DateTime.UtcNow
+            };
 
-                    // Combine all messages with level tags
-                    string combinedMessage = string.Join(" | ", logMessages.Select(m => $"[{m.Level}] {m.Message}"));
-
-                    var log = new LogEntry
-                    {
-                        Level = overallLevel,
-                        Message = combinedMessage,
-                        Source = source,
-                        Timestamp = DateTime.UtcNow
-                    };
-
-                    _logContext.Logs.Add(log);
-                    _logContext.SaveChanges();
-                }
-                catch(Exception ex)
-                {
-                     //return StatusCode(500, "An error occurred while creating the user.");
-            // Do nothing — logging failure shouldn't break the request
-                }
+            _logContext.Logs.Add(log);
+            _logContext.SaveChanges();
+        }
+        catch
+        {
+            // Ignore logging failure
+        }
     }
 }
+
+
+
+        // public IActionResult RegisterAdmin(AdminUser admin)
+        // {
+        //     string source = "/api/secure/register-admin";
+        //     var logBuilder = new System.Text.StringBuilder();
+        //     string finalMessage = string.Empty;
+        //     string overallLevel = "Information";
+        //     int step = 0;
+        //       string methodName = nameof(RegisterAdmin);  // ✅ automatically get method name
+
+        //     try
+        //     {
+        //         step++;
+        //         logBuilder.AppendLine($"[{methodName}] [Information] [Step {step}] Received admin registration request.");
+
+        //         step++;
+        //         logBuilder.AppendLine($"[{methodName}] [Information] [Step {step}] Encrypting payload.");
+        //         string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(admin));
+
+        //         step++;
+        //         logBuilder.AppendLine($"[{methodName}] [Information] [Step {step}] Decrypting payload.");
+        //         string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
+
+        //         step++;
+        //         logBuilder.AppendLine($"[{methodName}] [Information] [Step {step}] Deserializing payload.");
+        //         var user = JsonSerializer.Deserialize<Admin>(decryptedJson);
+
+        //         step++;
+        //         if (string.IsNullOrEmpty(user?.Username) || string.IsNullOrEmpty(user.Password))
+        //         {
+        //             finalMessage = $"[Step {step}] [Code: E001] Username and Password are required. (E001: Missing credentials)";
+        //             overallLevel = "Warning";
+        //             logBuilder.AppendLine($"[{methodName}] [Warning] {finalMessage}");
+        //             return BadRequest(finalMessage);
+        //         }
+
+        //         step++;
+        //         logBuilder.AppendLine($"[{methodName}] [Information] [Step {step}] Checking if user already exists.");
+        //         if (_context.AdminUser.Any(u => u.Username == user.Username))
+        //         {
+        //             step++;
+        //             finalMessage = $"[Step {step}] [Code: E002] User '{user.Username}' already exists. (E002: Duplicate user)";
+        //             overallLevel = "Warning";
+        //             logBuilder.AppendLine($"[{methodName}][Warning] {finalMessage}");
+        //             return Conflict(finalMessage);
+        //         }
+
+        //         step++;
+        //         logBuilder.AppendLine($"[{methodName}][Information] [Step {step}] Creating new admin ID.");
+        //         admin.AdminId = $"{_context.AdminUser.Count() + 1}A";
+
+        //         step++;
+        //         logBuilder.AppendLine($"[{methodName}] [Information] [Step {step}] Adding new admin to database.");
+        //         _context.AdminUser.Add(admin);
+        //         _context.SaveChanges();
+
+        //         step++;
+        //         finalMessage = $"[Step {step}] Admin '{admin.Username}' registered successfully.";
+        //         logBuilder.AppendLine($"[{methodName}][Information] {finalMessage}");
+
+        //         return Ok(new { Message = finalMessage });
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         step++;
+        //         finalMessage = $"[Step {step}] [Code: E999] Exception occurred: {ex.Message} (E999: Unhandled exception)";
+        //         overallLevel = "Error";
+        //         logBuilder.AppendLine($"[{methodName}][Error] {finalMessage}");
+        //         return StatusCode(500, "An error occurred while creating the user.");
+        //     }
+        //     finally
+        //     {
+        //         try
+        //         {
+        //             var logMessages = logBuilder.ToString();
+        //             var log = new LogEntry
+        //             {
+        //                 Level = overallLevel,
+        //                 Message = logMessages.Trim(),
+        //                 Source = source,
+        //                 Timestamp = DateTime.UtcNow
+        //             };
+
+        //             _logContext.Logs.Add(log);
+        //             _logContext.SaveChanges();
+        //         }
+        //         catch
+        //         {
+        //             // Ignore logging failure
+        //         }
+        //     }
+        // }
+
+
+
+
+
+
+        // [HttpPost("register-admin")]
+        // public IActionResult RegisterAdmin(AdminUser admin)
+        // {
+        //     string source = "/api/secure/register-admin";
+        //     var logMessages = new List<(string Level, string Message)>();
+        //     string finalMessage = string.Empty;
+        //     int step = 0;  // dynamic step counter
+
+        //     try
+        //     {
+        //         step++;
+        //         logMessages.Add(("Information", $"[Step {step}] Received admin registration request."));
+
+        //         step++;
+        //         logMessages.Add(("Information", $"[Step {step}] Encrypting payload."));
+        //         string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(admin));
+
+        //         step++;
+        //         logMessages.Add(("Information", $"[Step {step}] Decrypting payload."));
+        //         string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
+
+        //         step++;
+        //         logMessages.Add(("Information", $"[Step {step}] Deserializing payload."));
+        //         var user = JsonSerializer.Deserialize<Admin>(decryptedJson);
+
+        //         step++;
+        //         if (string.IsNullOrEmpty(user?.Username) || string.IsNullOrEmpty(user.Password))
+        //         {
+        //             finalMessage = $"[Step {step}] [Code: E001] Username and Password are required. (E001: Missing credentials)";
+        //             logMessages.Add(("Warning", finalMessage));
+        //             return BadRequest(finalMessage);
+        //         }
+
+        //         step++;
+        //         logMessages.Add(("Information", $"[Step {step}] Checking if user already exists."));
+        //         if (_context.AdminUser.Any(u => u.Username == user.Username))
+        //         {
+        //             step++;
+        //             finalMessage = $"[Step {step}] [Code: E002] User '{user.Username}' already exists. (E002: Duplicate user)";
+        //             logMessages.Add(("Warning", finalMessage));
+        //             return Conflict(finalMessage);
+        //         }
+
+        //         step++;
+        //         logMessages.Add(("Information", $"[Step {step}] Creating new admin ID."));
+        //         admin.AdminId = $"{_context.AdminUser.Count() + 1}A";
+
+        //         step++;
+        //         logMessages.Add(("Information", $"[Step {step}] Adding new admin to database."));
+        //         _context.AdminUser.Add(admin);
+        //         _context.SaveChanges();
+
+        //         step++;
+        //         finalMessage = $"[Step {step}] Admin '{admin.Username}' registered successfully.";
+        //         logMessages.Add(("Information", finalMessage));
+
+        //         return Ok(new { Message = finalMessage });
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         step++;
+        //         finalMessage = $"[Step {step}] [Code: E999] Exception occurred: {ex.Message} (E999: Unhandled exception)";
+        //         logMessages.Add(("Error", finalMessage));
+        //         return StatusCode(500, "An error occurred while creating the user.");
+        //     }
+        //     finally
+        //     {
+        //         try
+        //         {
+        //             // Determine most severe log level
+        //             string overallLevel = "Information"; // default
+        //             if (logMessages.Any(m => m.Level == "Error"))
+        //                 overallLevel = "Error";
+        //             else if (logMessages.Any(m => m.Level == "Warning"))
+        //                 overallLevel = "Warning";
+
+        //             // Combine all messages with level tags
+        //             string combinedMessage = string.Join(" | ", logMessages.Select(m => $"[{m.Level}] {m.Message}"));
+
+        //             var log = new LogEntry
+        //             {
+        //                 Level = overallLevel,
+        //                 Message = combinedMessage,
+        //                 Source = source,
+        //                 Timestamp = DateTime.UtcNow
+        //             };
+
+        //             _logContext.Logs.Add(log);
+        //             _logContext.SaveChanges();
+        //         }
+        //         catch
+        //         {
+        //             // Ignore logging failure
+        //         }
+        //     }
+        // }
+
+
+
+        // [HttpPost("register-admin")]
+        // public IActionResult RegisterAdmin(AdminUser admin)
+        // {
+        //     string source = "/api/secure/register-admin";
+        //     var logMessages = new List<(string Level, string Message)>();
+        //     string finalMessage = string.Empty;
+
+        //     try
+        //     {
+        //         logMessages.Add(("Information", "Received admin registration request."));
+
+        //         string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(admin));
+        //         string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
+        //         logMessages.Add(("Information", "Payload encrypted and decrypted successfully."));
+
+        //         var user = JsonSerializer.Deserialize<Admin>(decryptedJson);
+
+        //         if (string.IsNullOrEmpty(user?.Username) || string.IsNullOrEmpty(user.Password))
+        //         {
+        //             finalMessage = "Username and Password are required.";
+        //             logMessages.Add(("Warning", finalMessage));
+        //             return BadRequest(finalMessage);
+        //         }
+
+        //         if (_context.Admins.Any(u => u.Username == user.Username))
+        //         {
+        //             finalMessage = $"User '{user.Username}' already exists.";
+        //             logMessages.Add(("Warning", finalMessage));
+        //             return Conflict(finalMessage);
+        //         }
+
+        //         admin.AdminId = $"{_context.AdminUser.Count() + 1}A";
+        //         _context.AdminUser.Add(admin);
+        //         _context.SaveChanges();
+
+        //         finalMessage = $"Admin '{admin.Username}' registered successfully.";
+        //         logMessages.Add(("Information", finalMessage));
+
+        //         return Ok(new { Message = finalMessage });
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         finalMessage = $"Exception: {ex.Message}";
+        //         logMessages.Add(("Error", finalMessage));
+        //         return StatusCode(500, "An error occurred while creating the user.");
+        //     }
+        //     finally
+        //     {
+        //                 try
+        //                 {
+        //                     // Determine most severe log level
+        //                     string overallLevel = "Information"; // default
+        //                     if (logMessages.Any(m => m.Level == "Error"))
+        //                         overallLevel = "Error";
+        //                     else if (logMessages.Any(m => m.Level == "Warning"))
+        //                         overallLevel = "Warning";
+
+        //                     // Combine all messages with level tags
+        //                     string combinedMessage = string.Join(" | ", logMessages.Select(m => $"[{m.Level}] {m.Message}"));
+
+        //                     var log = new LogEntry
+        //                     {
+        //                         Level = overallLevel,
+        //                         Message = combinedMessage,
+        //                         Source = source,
+        //                         Timestamp = DateTime.UtcNow
+        //                     };
+
+        //                     _logContext.Logs.Add(log);
+        //                     _logContext.SaveChanges();
+        //                 }
+        //                 catch(Exception ex)
+        //                 {
+        //                      //return StatusCode(500, "An error occurred while creating the user.");
+        //             // Do nothing — logging failure shouldn't break the request
+        //                 }
+        //     }
+        // }
 
 
 
@@ -244,35 +539,82 @@ public IActionResult RegisterAdmin(AdminUser admin)
                 Report = savedReport
             });
         }
+        // [HttpPost("login")]
+        // public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        // {
+        //     var user = _context.AdminUser
+        //         .FirstOrDefault(u => u.Username == request.Username && u.Password == request.Password);
+
+        //     if (user == null)
+        //         return Unauthorized("Invalid credentials");
+
+        //     var payload = new AuthPayload
+        //     {
+        //         Username = user.Username,
+        //         Role = user.Role,
+        //     };
+
+        //     var json = JsonSerializer.Serialize(payload);
+        //     var token = AesEncryption.Encrypt(json);
+        //  HttpContext.Session.SetString("Role", payload.Role);
+        //     HttpContext.Session.SetString("Token", token);
+        // HttpContext.Session.SetString("Username", payload.Username);
+        //     return Ok(new
+        //     {
+        //         Message = "Login successful",
+        //         Token = token
+        //     });
+        // }
+
+
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginRequest request)
-        {
-            var user = _context.AdminUser
-                .FirstOrDefault(u => u.Username == request.Username && u.Password == request.Password);
+public async Task<IActionResult> Login([FromBody] LoginRequest request)
+{
+    var user = _context.AdminUser
+        .FirstOrDefault(u => u.Username == request.Username && u.Password == request.Password);
 
-            if (user == null)
-                return Unauthorized("Invalid credentials");
+    if (user == null)
+        return Unauthorized("Invalid credentials");
 
-            var payload = new AuthPayload
-            {
-                Username = user.Username,
-                Role = user.Role,
-            };
-       
-            var json = JsonSerializer.Serialize(payload);
-            var token = AesEncryption.Encrypt(json);
-         HttpContext.Session.SetString("Role", payload.Role);
-            HttpContext.Session.SetString("Token", token);
-        HttpContext.Session.SetString("Username", payload.Username);
-            return Ok(new
-            {
-                Message = "Login successful",
-                Token = token
-            });
-        }
+    var payload = new AuthPayload
+    {
+        Username = user.Username,
+        Role = user.Role,
+    };
+
+    var json = JsonSerializer.Serialize(payload);
+    var token = AesEncryption.Encrypt(json); // secure token
+
+    // 🔐 Store in HttpContext.Session
+    HttpContext.Session.SetString("Role", payload.Role);
+    HttpContext.Session.SetString("Token", token);
+    HttpContext.Session.SetString("Username", payload.Username);
+
+    // 💾 Store session info in database
+    var session = new SessionStore
+    {
+
+        UserId = user.AdminId,
+        Token = token,
+        IssuedAt = DateTime.UtcNow,
+        LastAccessedAt = DateTime.UtcNow,
+        IsActive = true
+    };
+
+    _context.SessionStores.Add(session);
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+        Message = "Login successful",
+        Token = token
+    });
+}
 
 
- [HttpPut("update-admin/{username}")]
+
+
+        [HttpPut("update-admin/{username}")]
 public IActionResult UpdateAdmin(string username, [FromBody] User updatedUser)
 {
     try

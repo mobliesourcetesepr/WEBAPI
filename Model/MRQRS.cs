@@ -104,13 +104,25 @@ namespace MultiTenantAPI.Models
         public string Title { get; set; }
         public string Description { get; set; }
     }
-    
+
     public class LogEntry
+    {
+        public int Id { get; set; }
+        public string Level { get; set; } // e.g., Information, Error
+        public string Message { get; set; }
+        public string Source { get; set; }
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    }
+public class SessionStore
 {
     public int Id { get; set; }
-    public string Level { get; set; } // e.g., Information, Error
-    public string Message { get; set; }
-    public string Source { get; set; }
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public string TenantId { get; set; } = string.Empty;
+    public string UserId { get; set; } = string.Empty;
+    public string Token { get; set; } = string.Empty;
+    public DateTime IssuedAt { get; set; }
+    public DateTime LastAccessedAt { get; set; } // NEW
+    public bool IsActive { get; set; } = true;
 }
+
+
 }
