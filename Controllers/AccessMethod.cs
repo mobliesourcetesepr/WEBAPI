@@ -597,7 +597,7 @@ public async Task<IActionResult> Login([FromBody] LoginRequest request)
         UserId = user.AdminId,
         Token = token,
         IssuedAt = DateTime.Now,
-        ExpiresAt = DateTime.Now.AddMinutes(5),
+        ExpiresAt = DateTime.Now.AddMinutes(2),
         LastAccessedAt = DateTime.Now,
         IsActive = true
     };
@@ -625,7 +625,7 @@ public async Task<IActionResult> Login([FromBody] LoginRequest request)
 
         // 🔁 Refresh session
         session.LastAccessedAt = DateTime.Now;
-        session.ExpiresAt = DateTime.UtcNow.AddMinutes(5); // refresh expiry
+        session.ExpiresAt = DateTime.Now.AddMinutes(5); // refresh expiry
         _context.SaveChanges();
 
         return Ok($"Welcome back, user: {session.UserId}");

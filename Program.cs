@@ -3,6 +3,7 @@ using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.DataProtection;  // <-- Add this
 using Microsoft.EntityFrameworkCore;
 using MultiTenantAPI.Data;
+using MultiTenantAPI.Services;
 using System.IO;
 using MultiTenantApi.Filters;
 
@@ -73,7 +74,7 @@ else
     throw new Exception("Invalid DbFlag value. Use 'mysql' or 'mssql'.");
 }
 
-
+builder.Services.AddHostedService<SessionCleanupService>();
 // Enable Session support
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
@@ -100,7 +101,6 @@ app.UseSession();
 
 // Authentication middleware using session tokens
 //app.UseMiddleware<SessionMiddleware>();
-
 app.UseMiddleware<SessionAuthMiddleware>();
 
 app.UseMiddleware<AuthTokenMiddleware>();     // Sets context from AES token
