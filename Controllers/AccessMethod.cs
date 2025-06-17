@@ -6,6 +6,7 @@ using MultiTenantAPI.Models;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using MultiTenantApi.Attributes;
+using MultiTenantAPI.Services;
 namespace MultiTenantAPI.Controllers
 {
     [Route("api/admin-secure")]
@@ -16,11 +17,16 @@ namespace MultiTenantAPI.Controllers
 
         private readonly MyLogDbContext _logContext;
 
-    public SecureAdminController(UserDbContext context, MyLogDbContext logContext)
-{
-    _context = context;
-    _logContext = logContext;
-}
+        private readonly RedisSessionService _redisSessionService;
+
+
+
+        public SecureAdminController(UserDbContext context, MyLogDbContext logContext, RedisSessionService redisSessionService)
+        {
+            _context = context;
+            _logContext = logContext;
+            _redisSessionService = redisSessionService;
+        }
 
 
 
@@ -566,72 +572,84 @@ public IActionResult RegisterAdmin(AdminUser admin)
         //     });
         // }
 
+        //For backgroundservice
+        //         [HttpPost("login")]
+        // public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        // {
+        //     var user = _context.AdminUser
+        //         .FirstOrDefault(u => u.Username == request.Username && u.Password == request.Password);
 
-        [HttpPost("login")]
-public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        //     if (user == null)
+        //         return Unauthorized("Invalid credentials");
+
+        //     var payload = new AuthPayload
+        //     {
+        //         Username = user.Username,
+        //         Role = user.Role,
+        //     };
+
+        //     var json = JsonSerializer.Serialize(payload);
+        //     var token = AesEncryption.Encrypt(json); // secure token
+
+        //     // 🔐 Store in HttpContext.Session
+        //     HttpContext.Session.SetString("Role", payload.Role);
+        //     HttpContext.Session.SetString("Token", token);
+        //     HttpContext.Session.SetString("Username", payload.Username);
+
+        //     // 💾 Store session info in database
+        //     var session = new SessionStore
+        //     {
+
+        //         UserId = user.AdminId,
+        //         Token = token,
+        //         IssuedAt = DateTime.Now,
+        //         ExpiresAt = DateTime.Now.AddMinutes(2),
+        //         LastAccessedAt = DateTime.Now,
+        //         IsActive = true
+        //     };
+
+        //     _context.SessionStores.Add(session);
+        //     await _context.SaveChangesAsync();
+
+        //     return Ok(new
+        //     {
+        //         Message = "Login successful",
+        //         Token = token
+        //     });
+        // }
+
+        //   [HttpGet("protected")]
+        //     public IActionResult ProtectedApi([FromHeader(Name = "X-Session-Token")] string Sessiontoken)
+        //     {
+        //         var token = Request.Headers["X-Session-Token"].ToString();
+
+        //         var session = _context.SessionStores.FirstOrDefault(s =>
+        //             s.Token == token && s.IsActive && s.ExpiresAt > DateTime.Now);
+
+        //         if (session == null)
+        //             return Unauthorized("Session expired or invalid.");
+
+        //         // 🔁 Refresh session
+        //         session.LastAccessedAt = DateTime.Now;
+        //         session.ExpiresAt = DateTime.Now.AddMinutes(5); // refresh expiry
+        //         _context.SaveChanges();
+
+        //         return Ok($"Welcome back, user: {session.UserId}");
+        //     }
+
+        //For RedisSession
+    [HttpPost("login")]
+public async Task<IActionResult> Login([FromBody] string userId)
 {
-    var user = _context.AdminUser
-        .FirstOrDefault(u => u.Username == request.Username && u.Password == request.Password);
-
-    if (user == null)
-        return Unauthorized("Invalid credentials");
-
-    var payload = new AuthPayload
-    {
-        Username = user.Username,
-        Role = user.Role,
-    };
-
-    var json = JsonSerializer.Serialize(payload);
-    var token = AesEncryption.Encrypt(json); // secure token
-
-    // 🔐 Store in HttpContext.Session
-    HttpContext.Session.SetString("Role", payload.Role);
-    HttpContext.Session.SetString("Token", token);
-    HttpContext.Session.SetString("Username", payload.Username);
-
-    // 💾 Store session info in database
     var session = new SessionStore
     {
-
-        UserId = user.AdminId,
-        Token = token,
-        IssuedAt = DateTime.Now,
-        ExpiresAt = DateTime.Now.AddMinutes(2),
-        LastAccessedAt = DateTime.Now,
-        IsActive = true
+        UserId = userId,
+        //Role = "User"
     };
 
-    _context.SessionStores.Add(session);
-    await _context.SaveChangesAsync();
-
-    return Ok(new
-    {
-        Message = "Login successful",
-        Token = token
-    });
+    var token = await _redisSessionService.CreateSessionAsync(session);
+    return Ok(new { Token = token });
 }
-
-  [HttpGet("protected")]
-    public IActionResult ProtectedApi([FromHeader(Name = "X-Session-Token")] string Sessiontoken)
-    {
-        var token = Request.Headers["X-Session-Token"].ToString();
-
-        var session = _context.SessionStores.FirstOrDefault(s =>
-            s.Token == token && s.IsActive && s.ExpiresAt > DateTime.Now);
-
-        if (session == null)
-            return Unauthorized("Session expired or invalid.");
-
-        // 🔁 Refresh session
-        session.LastAccessedAt = DateTime.Now;
-        session.ExpiresAt = DateTime.Now.AddMinutes(5); // refresh expiry
-        _context.SaveChanges();
-
-        return Ok($"Welcome back, user: {session.UserId}");
-    }
-
-
         [HttpPut("update-admin/{username}")]
 public IActionResult UpdateAdmin(string username, [FromBody] User updatedUser)
 {

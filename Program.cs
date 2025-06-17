@@ -6,6 +6,11 @@ using MultiTenantAPI.Data;
 using MultiTenantAPI.Services;
 using System.IO;
 using MultiTenantApi.Filters;
+using StackExchange.Redis;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+
 
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
@@ -46,9 +51,14 @@ builder.Services.AddSwaggerGen(options =>
 //     options.UseMySql(builder.Configuration.GetConnectionString("MySqlLogConnection"),
 //         ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("MySqlLogConnection")))
 // );
-
+//var redisConnection = config["Redis"];
 var dbFlag = config["ActiveDatabase"];
 Console.WriteLine($"ActiveDatabase: {dbFlag}");
+
+// builder.Services.AddSingleton<RedisSessionService>();
+// builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(
+//     builder.Configuration.GetConnectionString("Redis")));
+
 if (dbFlag == "mysql")
 {
 
@@ -62,8 +72,8 @@ if (dbFlag == "mysql")
 }
 else if (dbFlag == "SqlServer")
 {
-     builder.Services.AddDbContext<UserDbContext>(options =>
-        options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerConnection")));
+    builder.Services.AddDbContext<UserDbContext>(options =>
+       options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerConnection")));
 
     builder.Services.AddDbContext<MyLogDbContext>(options =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerConnection"))
@@ -73,6 +83,36 @@ else
 {
     throw new Exception("Invalid DbFlag value. Use 'mysql' or 'mssql'.");
 }
+// builder.Services.AddStackExchangeRedisCache(options =>
+// {
+//     options.Configuration = redisConnection;
+// });
+
+builder.Services.AddSingleton<TokenService>();
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+    };
+});
+
+builder.Services.AddAuthorization();
+
+
 
 builder.Services.AddHostedService<SessionCleanupService>();
 // Enable Session support
@@ -104,6 +144,8 @@ app.UseSession();
 app.UseMiddleware<SessionAuthMiddleware>();
 
 app.UseMiddleware<AuthTokenMiddleware>();     // Sets context from AES token
+
+app.UseAuthentication();
 
 
 app.UseAuthorization();

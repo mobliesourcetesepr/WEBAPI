@@ -125,5 +125,11 @@ public class SessionStore
     public bool IsActive { get; set; } = true;
 }
 
+public class OAuthRequest
+{
+    public string GrantType { get; set; } = "password";
+    public string Username { get; set; }
+    public string Password { get; set; }
+}
 
 }
