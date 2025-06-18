@@ -55,7 +55,7 @@ builder.Services.AddSession(options =>
 });
 
 
-
+builder.Services.AddSingleton<RateLimitService>();
 builder.Services.AddControllers();
 
 builder.Services.AddOpenApi();
