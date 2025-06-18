@@ -7,7 +7,6 @@ using Microsoft.IdentityModel.Tokens;
 using MultiTenantAPI.Data;
 using MultiTenantAPI.Models;
 using Microsoft.Extensions.Caching.Memory;
-using MultiTenantAPI.Services;
 using MultiTenantAPI.Filters;
 using MultiTenantApi.Attributes;
 [Route("oauth")]
