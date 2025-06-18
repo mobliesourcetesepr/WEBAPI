@@ -10,20 +10,20 @@ using MultiTenantAPI.Models;
 using Microsoft.Extensions.Caching.Memory;
 using MultiTenantAPI.Filters;
 using MultiTenantApi.Attributes;
-[Route("oauth")]
+[Route("auth")]
 [ApiController]
 public class TokenController : ControllerBase
 {
     private readonly TokenService _tokenService;
     private readonly UserDbContext _context;
     private readonly RateLimitService _rateLimitService;
-    public TokenController(TokenService tokenService, UserDbContext context, RateLimitService rateLimitService)
+    private readonly IConfiguration _config;
+    public TokenController(TokenService tokenService, UserDbContext context, RateLimitService rateLimitService, IConfiguration config)
     {
         _tokenService = tokenService;
         _context = context;
         _rateLimitService = rateLimitService;
-        
-
+        _config = config;
     }
 
   [HttpPost("token")]
@@ -31,7 +31,7 @@ public class TokenController : ControllerBase
     {
         string clientKey = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
-        if (_rateLimitService.IsRateLimited(clientKey))
+        if (_rateLimitService.IsRateLimited(clientKey, "/auth/token"))
             return StatusCode(429, "Too many requests. Please try again later.");
 
         var user = _context.AdminUser
@@ -71,58 +71,62 @@ public class TokenController : ControllerBase
     //     }
 
     //       [HttpGet("dashboard")]
-    // [AllowRole("Admin")]
-    // public IActionResult Dashboard([FromHeader(Name = "X-Bearer-Token")] string token)
-    // {
-    //     if (string.IsNullOrEmpty(token))
-    //         return BadRequest("Token is required.");
+  [HttpGet("dashboard")]
+public IActionResult Dashboard([FromHeader(Name = "X-Bearer-Token")] string token)
+{
+    string clientKey = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+   
 
-    //     var tokenHandler = new JwtSecurityTokenHandler();
-    //     var key = Encoding.UTF8.GetBytes(_config["Jwt:Key"]);
+    if (_rateLimitService.IsRateLimited(clientKey, "/auth/dashboard"))
+        return StatusCode(429, "Too many dashboard requests. Try again later.");
 
-    //     try
-    //     {
-    //         // ✅ Strict JWT token validation
-    //         tokenHandler.ValidateToken(token, new TokenValidationParameters
-    //         {
-    //             ValidateIssuer = true,
-    //             ValidateAudience = true,
-    //             ValidateLifetime = true,
-    //             RequireExpirationTime = true,
-    //             ValidateIssuerSigningKey = true,
-    //             ClockSkew = TimeSpan.Zero,
-    //             ValidIssuer = _config["Jwt:Issuer"],
-    //             ValidAudience = _config["Jwt:Audience"],
-    //             IssuerSigningKey = new SymmetricSecurityKey(key)
-    //         }, out SecurityToken validatedToken);
+    if (string.IsNullOrEmpty(token))
+        return BadRequest("Token is required.");
 
-    //         // Optional: Extract claims if needed
-    //         var jwtToken = (JwtSecurityToken)validatedToken;
-    //         var username = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
-    //         var role = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+    var tokenHandler = new JwtSecurityTokenHandler();
+    var key = Encoding.UTF8.GetBytes(_config["Jwt:Key"]);
 
-    //         // Simulated dashboard response
-    //         var dashboardData = new
-    //         {
-    //             Message = $"Welcome, {username}",
-    //             Role = role,
-    //             TotalUsers = 105,
-    //             ActiveSubAgents = 18,
-    //             ReportsGeneratedToday = 7,
-    //             ServerTime = DateTime.UtcNow
-    //         };
+    try
+    {
+        tokenHandler.ValidateToken(token, new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            RequireExpirationTime = true,
+            ValidateIssuerSigningKey = true,
+            ClockSkew = TimeSpan.Zero,
+            ValidIssuer = _config["Jwt:Issuer"],
+            ValidAudience = _config["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(key)
+        }, out SecurityToken validatedToken);
 
-    //         return Ok(dashboardData);
-    //     }
-    //     catch (SecurityTokenException ex)
-    //     {
-    //         return Unauthorized($"Invalid or expired token: {ex.Message}");
-    //     }
-    //     catch (Exception)
-    //     {
-    //         return Unauthorized("Token validation failed.");
-    //     }
-    // }
+        var jwtToken = (JwtSecurityToken)validatedToken;
+        var username = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+        var role = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+
+        var dashboardData = new
+        {
+            Message = $"Welcome, {username}",
+            Role = role,
+            TotalUsers = 105,
+            ActiveSubAgents = 18,
+            ReportsGeneratedToday = 7,
+            ServerTime = DateTime.UtcNow
+        };
+
+        return Ok(dashboardData);
+    }
+    catch (SecurityTokenException ex)
+    {
+        return Unauthorized($"Invalid or expired token: {ex.Message}");
+    }
+    catch (Exception)
+    {
+        return Unauthorized("Token validation failed.");
+    }
+}
+
 
 
 
