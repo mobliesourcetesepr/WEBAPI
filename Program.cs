@@ -1,14 +1,9 @@
-using MultiTenantAPI.Middleware;
+
 using Microsoft.OpenApi.Models;
-using Microsoft.AspNetCore.DataProtection;  // <-- Add this
 using Microsoft.EntityFrameworkCore;
 using MultiTenantAPI.Data;
-using MultiTenantAPI.Services;
-using System.IO;
 using MultiTenantApi.Filters;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
+
 
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
@@ -27,8 +22,10 @@ Console.WriteLine($"ActiveDatabase: {dbFlag}");
 if (dbFlag == "mysql")
 {
 
-    builder.Services.AddDbContext<UserDbContext>(options =>
-     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerConnection")));
+   builder.Services.AddDbContext<UserDbContext>(options =>
+        options.UseMySql(builder.Configuration.GetConnectionString("MySqlLogConnection"),
+            ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("MySqlLogConnection")))
+    );
 
 }
 else if (dbFlag == "SqlServer")
@@ -47,9 +44,6 @@ builder.Services.AddAuthorization();
 builder.Services.AddMemoryCache();
 
 
-
-builder.Services.AddHostedService<SessionCleanupService>();
-// Enable Session support
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
@@ -63,7 +57,7 @@ builder.Services.AddSession(options =>
 
 
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
@@ -79,13 +73,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseMiddleware<SessionAuthMiddleware>();    
-
 app.UseAuthentication();
-
-
-app.UseAuthorization();
-
 
 app.UseAuthorization();
 
