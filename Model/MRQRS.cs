@@ -123,6 +123,8 @@ public class SessionStore
     public DateTime LastAccessedAt { get; set; } // NEW
     public DateTime ExpiresAt { get; set; }
     public bool IsActive { get; set; } = true;
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
 }
 
 public class OAuthRequest
