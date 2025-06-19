@@ -19,28 +19,60 @@ public class ClientMasterController : ControllerBase
     [HttpPost("agentcreation")]
     public IActionResult InsertClient([FromBody] ClientMasterModel client)
     {
-        using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
-        using (SqlCommand cmd = new SqlCommand("InsertClientMaster", conn))
+        try
         {
-            cmd.CommandType = CommandType.StoredProcedure;
+            // Generate CLT_CLIENT_ID if not provided
+            if (string.IsNullOrEmpty(client.CLT_CLIENT_ID))
+            {
+                client.CLT_CLIENT_ID = "CLT" + DateTime.Now.ToString("yyyyMMddHHmmssfff");
+                Console.WriteLine(client.CLT_CLIENT_ID);
+            }
 
-            cmd.Parameters.AddWithValue("@CLT_CLIENT_NAME", client.CLT_CLIENT_NAME ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@CLT_ADDRESS2", client.CLT_ADDRESS2 ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@CLT_STATE_ID", client.CLT_STATE_ID ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@CLT_CLIENT_TITLE", client.CLT_CLIENT_TITLE ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@CLT_COUNTRY_ID", client.CLT_COUNTRY_ID ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@CLT_CITY_ID", client.CLT_CITY_ID ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@CLT_ZIP_CODE", client.CLT_ZIP_CODE ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@CLT_CONTACT", client.CLT_CONTACT ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@CLT_EMAIL_ID", client.CLT_EMAIL_ID ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@CLT_CLIENT_LASTNAME", client.CLT_CLIENT_LASTNAME ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@CLT_CLIENT_FIRSTNAME", client.CLT_CLIENT_FIRSTNAME ?? (object)DBNull.Value);
+            using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
+            using (SqlCommand cmd = new SqlCommand("InsertClientMaster", conn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
 
-            conn.Open();
-            int result = cmd.ExecuteNonQuery();
-            conn.Close();
+                cmd.Parameters.AddWithValue("@CLT_CLIENT_ID", client.CLT_CLIENT_ID ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@CLT_CLIENT_NAME", client.CLT_CLIENT_NAME ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@CLT_ADDRESS", client.CLT_ADDRESS1 ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@CLT_STATE_ID", client.CLT_STATE_ID ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@CLT_CLIENT_TITLE", client.CLT_CLIENT_TITLE ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@CLT_COUNTRY_ID", client.CLT_COUNTRY_ID ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@CLT_CITY_ID", client.CLT_CITY_ID ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@CLT_ZIP_CODE", client.CLT_ZIP_CODE ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@CLT_MOBILE_NO", client.CLT_MOBILE_NO ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@CLT_EMAIL_ID", client.CLT_EMAIL_ID ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@CLT_CLIENT_LASTNAME", client.CLT_CLIENT_LASTNAME ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@CLT_CLIENT_FIRSTNAME", client.CLT_CLIENT_FIRSTNAME ?? (object)DBNull.Value);
 
-            return Ok(new { Message = "Inserted Successfully", RowsAffected = result });
+                conn.Open();
+                int result = cmd.ExecuteNonQuery();
+                conn.Close();
+
+                return Ok(new
+                {
+                    Message = "Inserted Successfully",
+                    RowsAffected = result
+                });
+            }
+        }
+        catch (SqlException sqlEx)
+        {
+            return StatusCode(500, new
+            {
+                Message = "SQL error while inserting client",
+                Error = sqlEx.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new
+            {
+                Message = "Unexpected error occurred",
+                Error = ex.Message
+            });
         }
     }
+
 }
