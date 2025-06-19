@@ -6,6 +6,8 @@ using System.Data;
 using Microsoft.Data.SqlClient;
 using AgentCreation.Data;
 using AgentCreation.Services;
+using System.Text.Json;
+using AgentCreation.Helpers;
 
 [Route("api")]
 [ApiController]
@@ -27,14 +29,17 @@ public class ClientMasterController : ControllerBase
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginRequest request)
         {
-              Console.WriteLine("User: " + request?.Username);
-              Console.WriteLine("User: " + request?.Password);
-            if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
+            string encryptedPayload = AesEncryption.Encrypt(JsonSerializer.Serialize(request));
+            string decryptedJson = AesEncryption.Decrypt(encryptedPayload);
+            var Userdata = JsonSerializer.Deserialize<LoginRequest>(decryptedJson);
+             Console.WriteLine("Decrypted Payload: " + decryptedJson);
+             Console.WriteLine("encryptedPayload: " + encryptedPayload);
+            if (string.IsNullOrEmpty(Userdata.Username) || string.IsNullOrEmpty(Userdata.Password))
             return BadRequest("Username and Password are required");
 
             var user = _context.AdminUser
-                .FirstOrDefault(u => u.Username == request.Username && u.Password == request.Password);
-            Console.WriteLine("User: " + user?.Username);
+                .FirstOrDefault(u => u.Username == Userdata.Username && u.Password == Userdata.Password);
+            //Console.WriteLine("User: " + user?.Username);
             if (user == null)
                 return Unauthorized("Invalid username or password");
 
