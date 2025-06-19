@@ -45,8 +45,8 @@ public class AllowRoleAttribute : Attribute, IAuthorizationFilter
 
             var jwtToken = (JwtSecurityToken)validatedToken;
             var role = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-            Console.WriteLine("Role: " + role);
-            Console.WriteLine("Role: " + _allowedRoles);
+            //Console.WriteLine("Role: " + role);
+            //Console.WriteLine("Role: " + _allowedRoles);
             if (!_allowedRoles.Contains(role))
             {
                 context.Result = new ContentResult

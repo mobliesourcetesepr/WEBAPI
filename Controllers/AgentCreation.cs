@@ -136,8 +136,4 @@ public class ClientMasterController : ControllerBase
             return StatusCode(500, new { Message = "Update failed", Error = ex.Message });
         }
     }
-
-
-
-
 }
