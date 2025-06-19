@@ -14,14 +14,14 @@ public class ClientMasterModel
     public string CLT_EMAIL_ID { get; set; }
     public string CLT_CLIENT_LASTNAME { get; set; }
     public string CLT_CLIENT_FIRSTNAME { get; set; }
-    [JsonIgnore]
-    public string CLT_CREATED_BY { get; set; }
+    //[JsonIgnore]
+    //public string CLT_CREATED_BY { get; set; }
 
 }
 public class ClientUpdateModel
 {
-    [JsonIgnore]
-    public string CLT_UPDATED_BY { get; set; }
+    //[JsonIgnore]
+   // public string CLT_UPDATED_BY { get; set; }
     public string CLT_MOBILE_NO { get; set; }
     public string CLT_CLIENT_FIRSTNAME { get; set; }
 

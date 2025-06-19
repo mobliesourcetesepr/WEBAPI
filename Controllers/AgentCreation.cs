@@ -49,7 +49,7 @@ public class ClientMasterController : ControllerBase
         try
         {
 
-            client.CLT_CREATED_BY = HttpContext.Session.GetString("LoggedInUsername");
+            var CREATEDBY = HttpContext.Session.GetString("LoggedInUsername");
             using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
             using (SqlCommand cmd = new SqlCommand("InsertClientMaster", conn))
             {
@@ -67,7 +67,7 @@ public class ClientMasterController : ControllerBase
                 cmd.Parameters.AddWithValue("@CLT_EMAIL_ID", client.CLT_EMAIL_ID ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@CLT_CLIENT_LASTNAME", client.CLT_CLIENT_LASTNAME ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@CLT_CLIENT_FIRSTNAME", client.CLT_CLIENT_FIRSTNAME ?? (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@CLT_CREATED_BY",  client.CLT_CREATED_BY ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@CLT_CREATED_BY",  CREATEDBY);
 
                 conn.Open();
                 int result = cmd.ExecuteNonQuery();
@@ -103,7 +103,7 @@ public class ClientMasterController : ControllerBase
     {
         try
         {
-             client.CLT_UPDATED_BY = HttpContext.Session.GetString("LoggedInUsername");
+            var UPDATEDBY = HttpContext.Session.GetString("LoggedInUsername");
             using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
             using (SqlCommand cmd = new SqlCommand("UpdateClientMaster", conn))
             {
@@ -113,7 +113,7 @@ public class ClientMasterController : ControllerBase
                 cmd.Parameters.AddWithValue("@CLT_MOBILE_NO", client.CLT_MOBILE_NO ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@CLT_CLIENT_FIRSTNAME", client.CLT_CLIENT_FIRSTNAME ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@CLT_CLIENT_LASTNAME", client.CLT_CLIENT_LASTNAME ?? (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@CLT_UPDATED_BY",  client.CLT_UPDATED_BY ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@CLT_UPDATED_BY",  UPDATEDBY);
 
                 conn.Open();
                 int result = cmd.ExecuteNonQuery();
