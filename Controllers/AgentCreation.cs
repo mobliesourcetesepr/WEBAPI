@@ -21,19 +21,14 @@ public class ClientMasterController : ControllerBase
     {
         try
         {
-            // Generate CLT_CLIENT_ID if not provided
-            if (string.IsNullOrEmpty(client.CLT_CLIENT_ID))
-            {
-                client.CLT_CLIENT_ID = "CLT" + DateTime.Now.ToString("yyyyMMddHHmmssfff");
-                Console.WriteLine(client.CLT_CLIENT_ID);
-            }
+            
 
             using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
             using (SqlCommand cmd = new SqlCommand("InsertClientMaster", conn))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.AddWithValue("@CLT_CLIENT_ID", client.CLT_CLIENT_ID ?? (object)DBNull.Value);
+               
                 cmd.Parameters.AddWithValue("@CLT_CLIENT_NAME", client.CLT_CLIENT_NAME ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@CLT_ADDRESS", client.CLT_ADDRESS1 ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@CLT_STATE_ID", client.CLT_STATE_ID ?? (object)DBNull.Value);

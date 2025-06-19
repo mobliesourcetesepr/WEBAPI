@@ -2,8 +2,7 @@ using System.Text.Json.Serialization;
 
 public class ClientMasterModel
 {
-    [JsonIgnore] // Or [BindNever]
-    public string? CLT_CLIENT_ID { get; set; }
+
     public string CLT_CLIENT_NAME { get; set; }
     public string CLT_ADDRESS1 { get; set; }
     public string CLT_STATE_ID { get; set; }
