@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Data;
 using Microsoft.Data.SqlClient;
 using AgentCreation.Data;
+using AgentCreation.Services;
 
 [Route("api")]
 [ApiController]
@@ -12,35 +13,43 @@ public class ClientMasterController : ControllerBase
 {
     private readonly IConfiguration _configuration;
     private readonly UserDbContext _context;
-
-    public ClientMasterController(IConfiguration configuration, UserDbContext context)
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly JwtTokenService _tokenService;
+    public ClientMasterController(IConfiguration configuration, UserDbContext context, IHttpContextAccessor httpContextAccessor, JwtTokenService tokenService)
     {
         _configuration = configuration;
         _context = context;
+        _httpContextAccessor = httpContextAccessor;
+        _tokenService = tokenService;
     }
 
- [HttpPost("login")]
-    public IActionResult Login([FromBody] LoginRequest request)
-    {
-        if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
+
+        [HttpPost("login")]
+        public IActionResult Login([FromBody] LoginRequest request)
+        {
+              Console.WriteLine("User: " + request?.Username);
+              Console.WriteLine("User: " + request?.Password);
+            if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
             return BadRequest("Username and Password are required");
 
-        // 🔍 Validate using DbContext
-        var user = _context.AdminUser
-            .FirstOrDefault(u => u.Username == request.Username && u.Password == request.Password);
+            var user = _context.AdminUser
+                .FirstOrDefault(u => u.Username == request.Username && u.Password == request.Password);
+            Console.WriteLine("User: " + user?.Username);
+            if (user == null)
+                return Unauthorized("Invalid username or password");
 
-        if (user == null)
-            return Unauthorized("Invalid username or password");
+            // ✅ Save to session
+            HttpContext.Session.SetString("LoggedInUsername", user.Username);
 
-        // ✅ Save username in session
-        HttpContext.Session.SetString("LoggedInUsername", user.Username);
+            // ✅ Generate JWT token
+            var token = _tokenService.GenerateToken(user.Username, user.Role);
 
-        return Ok(new
-        {
-            Message = "Login successful",
-        });
-    }
-
+            return Ok(new
+            {
+                Message = "Login successful",
+                Token = token,
+            });
+        }
 
 
     [HttpPost("agentcreation")]
@@ -97,9 +106,9 @@ public class ClientMasterController : ControllerBase
             });
         }
     }
-
+    [AllowRole("Admin", "Sales")]
     [HttpPut("update-client/{clientId}")]
-    public IActionResult UpdateClient(string clientId, [FromBody] ClientUpdateModel client)
+    public IActionResult UpdateClient([FromHeader(Name = "X-Bearer-Token")] string token,string clientId, [FromBody] ClientUpdateModel client)
     {
         try
         {

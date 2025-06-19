@@ -21,7 +21,7 @@ public class ClientMasterModel
 public class ClientUpdateModel
 {
     //[JsonIgnore]
-   // public string CLT_UPDATED_BY { get; set; }
+    // public string CLT_UPDATED_BY { get; set; }
     public string CLT_MOBILE_NO { get; set; }
     public string CLT_CLIENT_FIRSTNAME { get; set; }
 
@@ -34,12 +34,20 @@ public class LoginRequest
     public string Password { get; set; }
 }
 
-    public class AdminUser
-    {
-        [JsonIgnore]
-        public int Id { get; set; }
-        public string AdminId { get; set; } = string.Empty; 
-        public string Username { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
+public class AdminUser
+{
+    [JsonIgnore]
+    public int Id { get; set; }
+    public string AdminId { get; set; } = string.Empty;
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    [JsonIgnore]
+    public string Role { get; set; }
 
-    }
+}
+public class AuthPayload
+{
+    public string Username { get; set; }
+    public string Role { get; set; }
+
+}

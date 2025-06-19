@@ -1,4 +1,5 @@
 using AgentCreation.Data;
+using AgentCreation.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,7 +12,6 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 // ✅ Required for session
 builder.Services.AddDataProtection();
-
 builder.Services.AddDistributedMemoryCache();
 
 builder.Services.AddSession(options =>
@@ -20,6 +20,7 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
+builder.Services.AddScoped<JwtTokenService>();
 
 builder.Services.AddHttpContextAccessor();
 
