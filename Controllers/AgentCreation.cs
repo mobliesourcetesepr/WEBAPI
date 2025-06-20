@@ -27,17 +27,17 @@ public class ClientMasterController : ControllerBase
     }
 
 
-    [HttpPost("login")]
+    [HttpPost("Adminlogin")]
     public IActionResult Login([FromBody] LoginRequest request)
     {
 
         try
         {
-           
+
 
             if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
                 return BadRequest("Username and Password are required");
-           
+
             var user = _context.AdminUser
                 .FirstOrDefault(u => u.Username == request.Username && u.Password == request.Password);
             //Console.WriteLine("User: " + user?.Username);
@@ -45,14 +45,14 @@ public class ClientMasterController : ControllerBase
                 return Unauthorized("Invalid username or password");
             //string HaxhedPassword = AesEncryption.ComputeSha256Hash(request.Password);
 
-             var hashed = AesEncryption.SHAPROCESS(request.Password);
+            var hashed = AesEncryption.SHAPROCESS(request.Password);
 
             using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
             using (SqlCommand cmd = new SqlCommand("InsertTerminalLogin", conn))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_NAME", request.Username ?? (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_PWD", hashed ?? (object)DBNull.Value); 
+                cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_PWD", hashed ?? (object)DBNull.Value);
                 conn.Open();
                 int result = cmd.ExecuteNonQuery();
                 conn.Close();
@@ -78,19 +78,9 @@ public class ClientMasterController : ControllerBase
                 Error = ex.Message
             });
         }
-        }
+    }
 
-        // private static string ComputeSha256Hash(string rawData)
-        // {
-        //     using (SHA256 sha256Hash = SHA256.Create())
-        //     {
-        //         byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(rawData));
-        //         StringBuilder builder = new StringBuilder();
-        //         for (int i = 0; i < bytes.Length; i++)
-        //             builder.Append(bytes[i].ToString("x2"));
-        //         return builder.ToString();
-        //     }
-        // }
+
     [HttpPost("agentcreation")]
     public IActionResult InsertClient([FromBody] ClientMasterModel client)
     {
@@ -98,6 +88,8 @@ public class ClientMasterController : ControllerBase
         {
 
             var CREATEDBY = HttpContext.Session.GetString("LoggedInUsername");
+            var password = AesEncryption.Generate();
+
             using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
             using (SqlCommand cmd = new SqlCommand("InsertClientMaster", conn))
             {
@@ -113,12 +105,15 @@ public class ClientMasterController : ControllerBase
                 cmd.Parameters.AddWithValue("@CLT_EMAIL_ID", client.CLT_EMAIL_ID ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@CLT_CLIENT_LASTNAME", client.CLT_CLIENT_LASTNAME ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@CLT_CLIENT_FIRSTNAME", client.CLT_CLIENT_FIRSTNAME ?? (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@CLT_CREATED_BY",  CREATEDBY);
+                cmd.Parameters.AddWithValue("@CLT_PSWD", password);
+                cmd.Parameters.AddWithValue("@CLT_CREATED_BY", CREATEDBY);
 
                 conn.Open();
                 int result = cmd.ExecuteNonQuery();
                 conn.Close();
-
+                var emailHtml = WelcomeEmailTemplate.GetHtml($"{client.CLT_CLIENT_FIRSTNAME} {client.CLT_CLIENT_LASTNAME}", client.CLT_EMAIL_ID, password);
+                var emailSender = new EmailSender(_configuration);
+                emailSender.SendEmail(client.CLT_EMAIL_ID, "Welcome to Our Platform", emailHtml);
                 return Ok(new
                 {
                     Message = "Inserted Successfully",
@@ -145,7 +140,7 @@ public class ClientMasterController : ControllerBase
     }
     [AllowRole("Admin", "Sales")]
     [HttpPut("update-client/{clientId}")]
-    public IActionResult UpdateClient([FromHeader(Name = "X-Bearer-Token")] string token,string clientId, [FromBody] ClientUpdateModel client)
+    public IActionResult UpdateClient([FromHeader(Name = "X-Bearer-Token")] string token, string clientId, [FromBody] ClientUpdateModel client)
     {
         try
         {
@@ -159,7 +154,7 @@ public class ClientMasterController : ControllerBase
                 cmd.Parameters.AddWithValue("@CLT_MOBILE_NO", client.CLT_MOBILE_NO ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@CLT_CLIENT_FIRSTNAME", client.CLT_CLIENT_FIRSTNAME ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@CLT_CLIENT_LASTNAME", client.CLT_CLIENT_LASTNAME ?? (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@CLT_UPDATED_BY",  UPDATEDBY);
+                cmd.Parameters.AddWithValue("@CLT_UPDATED_BY", UPDATEDBY);
 
                 conn.Open();
                 int result = cmd.ExecuteNonQuery();

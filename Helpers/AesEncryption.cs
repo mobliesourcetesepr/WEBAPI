@@ -8,6 +8,7 @@ namespace AgentCreation.Helpers
     {
         private static readonly string Key = "1234567890123456"; // 32 bytes
         private static readonly string IV = "abcdefghijklmnop"; // 16 bytes
+        private static readonly string _chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*";
 
         public static string Encrypt(string plainText)
         {
@@ -47,6 +48,16 @@ namespace AgentCreation.Helpers
                 return builder.ToString();
             }
         }
+
+
+        public static string Generate(int length = 10)
+        {
+            var random = new Random();
+            return new string(Enumerable.Repeat(_chars, length)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+
+
     }
 
 }
