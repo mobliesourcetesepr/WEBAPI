@@ -115,6 +115,40 @@ public class ClientMasterController : ControllerBase
     }
 
 
+//     [HttpPost("changepassword")]
+// public IActionResult ChangePassword([FromBody] ChangePasswordRequest request)
+// {
+//     using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
+//     {
+//         conn.Open();
+
+//         // 1. Fetch stored password hash
+//         using (SqlCommand cmd = new SqlCommand("SELECT LGN_TERMINAL_LOGIN_PWD FROM T_M_LOGIN WHERE LGN_TERMINAL_LOGIN_NAME = @Username", conn))
+//         {
+//             cmd.Parameters.AddWithValue("@Username", request.Username);
+//             var storedHash = cmd.ExecuteScalar()?.ToString();
+
+//             if (storedHash == null)
+//                 return NotFound("User not found");
+
+//             // 2. Compare hash of provided old password
+//             string oldPasswordHash = AesEncryption.SHAPROCESS(request.OldPassword);
+//             if (storedHash != oldPasswordHash)
+//                 return Unauthorized("Old password is incorrect");
+//         }
+
+//         // 3. Hash new password and update it
+//         string newPasswordHash = AesEncryption.SHAPROCESS(request.NewPassword);
+//         using (SqlCommand updateCmd = new SqlCommand("UPDATE T_M_LOGIN SET LGN_TERMINAL_LOGIN_PWD = @NewHash WHERE LGN_TERMINAL_LOGIN_NAME = @Username", conn))
+//         {
+//             updateCmd.Parameters.AddWithValue("@NewHash", newPasswordHash);
+//             updateCmd.Parameters.AddWithValue("@Username", request.Username);
+//             updateCmd.ExecuteNonQuery();
+//         }
+
+//         return Ok("Password updated successfully");
+//     }
+// }
 
 
 
