@@ -35,7 +35,6 @@ public class ClientMasterController : ControllerBase
         try
         {
 
-
             if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
                 return BadRequest("Username and Password are required");
 
@@ -85,6 +84,7 @@ public class ClientMasterController : ControllerBase
             using (SqlCommand cmd = new SqlCommand("InsertTerminalLogin", conn))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@MODE", "I");
                 cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_NAME", Email ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_PWD", hashedPassword ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@LGN_AGENT_ID", ID ?? (object)DBNull.Value);
@@ -113,6 +113,45 @@ public class ClientMasterController : ControllerBase
             });
         }
     }
+[HttpPost("changepassword")]
+public IActionResult ChangePassword([FromBody] ChangePasswordRequest request)
+{
+    try
+    {
+        using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
+        {
+            conn.Open();
+
+            string oldPasswordHash = AesEncryption.SHAPROCESS(request.OldPassword);
+            string newPasswordHash = AesEncryption.SHAPROCESS(request.NewPassword);
+
+            using (SqlCommand cmd = new SqlCommand("InsertTerminalLogin", conn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.AddWithValue("@MODE", "CPWD");
+                cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_NAME", request.Username);
+                cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_PWD", oldPasswordHash);
+                cmd.Parameters.AddWithValue("@NEW_PASSWORD", newPasswordHash);
+
+                var result = cmd.ExecuteScalar()?.ToString();
+
+                return result switch
+                {
+                    "SUCCESS" => Ok("Password changed successfully."),
+                    "INVALID_OLD_PASSWORD" => Unauthorized("Old password is incorrect."),
+                    "PASSWORD_ALREADY_USED" => BadRequest("New password cannot be the same as old password."),
+                    "USER_NOT_FOUND" => NotFound("User not found."),
+                    _ => BadRequest("Password change failed.")
+                };
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        return StatusCode(500, $"Internal server error: {ex.Message}");
+    }
+}
 
 
 //     [HttpPost("changepassword")]
