@@ -10,6 +10,7 @@ using System.Text.Json;
 using AgentCreation.Helpers;
 using System.Security.Cryptography;
 using Swashbuckle.AspNetCore.Annotations;
+using AgentCreation.Utilities;
 
 [Route("api")]
 [ApiController]
@@ -226,9 +227,12 @@ public IActionResult ChangePassword([FromBody] ChangePasswordRequest request)
                 string generatedClientId = clientIdParam.Value?.ToString();
                 conn.Close();
                 AgentLoginInsert(generatedClientId, client.CLT_CLIENT_TITLE, client.CLT_CLIENT_NAME, client.CLT_CLIENT_FIRSTNAME, client.CLT_CLIENT_LASTNAME, client.CLT_EMAIL_ID, client.CLT_MOBILE_NO, password);
-                var emailHtml = WelcomeEmailTemplate.GetHtml($"{client.CLT_CLIENT_FIRSTNAME} {client.CLT_CLIENT_LASTNAME}", client.CLT_EMAIL_ID, password);
+                string htmlContent = EmailTemplateGenerator.GetHtml($"{client.CLT_CLIENT_FIRSTNAME} {client.CLT_CLIENT_LASTNAME}", client.CLT_EMAIL_ID, password, EmailTemplateType.Welcome, WelcomeTemplateVariant.Format3);
                 var emailSender = new EmailSender(_configuration);
-                emailSender.SendEmail(client.CLT_EMAIL_ID, "Welcome to Our Platform", emailHtml);
+                emailSender.SendEmail(client.CLT_EMAIL_ID, "Welcome to Our Platform", htmlContent);
+
+
+
                 return Ok(new
                 {
                     Message = "Inserted Successfully",
