@@ -79,6 +79,46 @@ public class ClientMasterController : ControllerBase
             });
         }
     }
+    [HttpPost("agentlogin")]
+public IActionResult AgentLoginInsert([FromBody] LoginRequest request)
+{
+    try
+    {
+        if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
+            return BadRequest("Username and Password are required");
+
+        // 🔐 Hash the password
+        var hashedPassword = AesEncryption.SHAPROCESS(request.Password);
+
+        // ✅ Insert into login log table
+        using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
+        using (SqlCommand cmd = new SqlCommand("InsertTerminalLogin", conn))
+        {
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_NAME", request.Username ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_PWD", hashedPassword ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@LGN_CREATED_DATE", DateTime.Now);  // Optional if your DB doesn't auto-insert
+
+            conn.Open();
+            int result = cmd.ExecuteNonQuery();
+            conn.Close();
+
+            return Ok(new
+            {
+                Message = "Login data inserted successfully",
+                RowsAffected = result
+            });
+        }
+    }
+    catch (Exception ex)
+    {
+        return StatusCode(500, new
+        {
+            Message = "Unexpected error occurred",
+            Error = ex.Message
+        });
+    }
+}
 
 
     [HttpPost("agentcreation")]
