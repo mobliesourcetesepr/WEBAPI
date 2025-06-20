@@ -48,17 +48,7 @@ public class ClientMasterController : ControllerBase
 
             var hashed = AesEncryption.SHAPROCESS(request.Password);
 
-            // using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
-            // using (SqlCommand cmd = new SqlCommand("InsertTerminalLogin", conn))
-            // {
-            //     cmd.CommandType = CommandType.StoredProcedure;
-            //     cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_NAME", request.Username ?? (object)DBNull.Value);
-            //     cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_PWD", hashed ?? (object)DBNull.Value);
-            //     conn.Open();
-            //     int result = cmd.ExecuteNonQuery();
-            //     conn.Close();
 
-            // }
             // ✅ Save to session
             HttpContext.Session.SetString("LoggedInUsername", user.Username);
 
@@ -80,52 +70,52 @@ public class ClientMasterController : ControllerBase
             });
         }
     }
-[SwaggerIgnore]
-[HttpPost("agentlogin")]
-public IActionResult AgentLoginInsert(string Title,string Username,string Firstname,string lastname,string Email,string MobileNo,string password)
-{
-    try
+    [SwaggerIgnore]
+    [HttpPost("agentlogin")]
+    public IActionResult AgentLoginInsert(string ID, string Title, string Username, string Firstname, string lastname, string Email, string MobileNo, string password)
     {
-        // if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
-        //     return BadRequest("Username and Password are required");
-
-        // 🔐 Hash the password
-        var hashedPassword = AesEncryption.SHAPROCESS(password);
-
-        // ✅ Insert into login log table
-        using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
-        using (SqlCommand cmd = new SqlCommand("InsertTerminalLogin", conn))
+        try
         {
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_NAME",Username ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_PWD",  hashedPassword?? (object)DBNull.Value);
-            // cmd.Parameters.AddWithValue("@LGN_AGENT_ID",  ?? (object)DBNull.Value);
-            // cmd.Parameters.AddWithValue("@LGN_TERMINAL_ID",  ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@LGN_TITLE", Title?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@LGN_MOBILE_NUMBER", MobileNo ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@LGN_EMAILID",Email?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@LGN_FIRSTNAME",  Firstname?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@LGN_LASTNAME",lastname?? (object)DBNull.Value);
-            conn.Open();
-            int result = cmd.ExecuteNonQuery();
-            conn.Close();
 
-            return Ok(new
+            // 🔐 Hash the password
+            var hashedPassword = AesEncryption.SHAPROCESS(password);
+
+            // ✅ Insert into login log table
+            using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
+            using (SqlCommand cmd = new SqlCommand("InsertTerminalLogin", conn))
             {
-                Message = "Login data inserted successfully",
-                RowsAffected = result
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_NAME", Email ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_PWD", hashedPassword ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@LGN_AGENT_ID", ID ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@LGN_TITLE", Title ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@LGN_MOBILE_NUMBER", MobileNo ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@LGN_EMAILID", Email ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@LGN_FIRSTNAME", Firstname ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@LGN_LASTNAME", lastname ?? (object)DBNull.Value);
+                conn.Open();
+                int result = cmd.ExecuteNonQuery();
+                conn.Close();
+
+                return Ok(new
+                {
+                    Message = "Login data inserted successfully",
+                    RowsAffected = result
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new
+            {
+                Message = "Unexpected error occurred",
+                Error = ex.Message
             });
         }
     }
-    catch (Exception ex)
-    {
-        return StatusCode(500, new
-        {
-            Message = "Unexpected error occurred",
-            Error = ex.Message
-        });
-    }
-}
+
+
+
 
 
     [HttpPost("agentcreation")]
@@ -153,11 +143,16 @@ public IActionResult AgentLoginInsert(string Title,string Username,string Firstn
                 cmd.Parameters.AddWithValue("@CLT_CLIENT_LASTNAME", client.CLT_CLIENT_LASTNAME ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@CLT_CLIENT_FIRSTNAME", client.CLT_CLIENT_FIRSTNAME ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@CLT_CREATED_BY", CREATEDBY);
-
+                var clientIdParam = new SqlParameter("@CLT_CLIENT_ID", SqlDbType.VarChar, 50)
+                {
+                    Direction = ParameterDirection.Output
+                };
+                cmd.Parameters.Add(clientIdParam);
                 conn.Open();
                 int result = cmd.ExecuteNonQuery();
+                string generatedClientId = clientIdParam.Value?.ToString();
                 conn.Close();
-                AgentLoginInsert(client.CLT_CLIENT_TITLE,client.CLT_CLIENT_NAME, client.CLT_CLIENT_FIRSTNAME, client.CLT_CLIENT_LASTNAME, client.CLT_EMAIL_ID, client.CLT_MOBILE_NO, password);
+                AgentLoginInsert(generatedClientId, client.CLT_CLIENT_TITLE, client.CLT_CLIENT_NAME, client.CLT_CLIENT_FIRSTNAME, client.CLT_CLIENT_LASTNAME, client.CLT_EMAIL_ID, client.CLT_MOBILE_NO, password);
                 var emailHtml = WelcomeEmailTemplate.GetHtml($"{client.CLT_CLIENT_FIRSTNAME} {client.CLT_CLIENT_LASTNAME}", client.CLT_EMAIL_ID, password);
                 var emailSender = new EmailSender(_configuration);
                 emailSender.SendEmail(client.CLT_EMAIL_ID, "Welcome to Our Platform", emailHtml);
