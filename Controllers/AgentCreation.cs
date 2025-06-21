@@ -86,7 +86,7 @@ public class ClientMasterController : ControllerBase
             using (SqlCommand cmd = new SqlCommand("InsertTerminalLogin", conn))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@MODE", "I");
+                cmd.Parameters.AddWithValue("@FLAG", "I");
                 cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_NAME", Email ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_PWD", hashedPassword ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@LGN_AGENT_ID", ID ?? (object)DBNull.Value);
@@ -115,6 +115,42 @@ public class ClientMasterController : ControllerBase
             });
         }
     }
+
+    [SwaggerIgnore]
+    [HttpPost("clientTXNDet")]
+    public IActionResult ClientLogInsert(string ID, string Username)
+    {
+        try
+        {
+           
+            // ✅ Insert into login log table
+            using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
+            using (SqlCommand cmd = new SqlCommand("InsertClientCreditDetail", conn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@CCD_CLIENT_ID", ID);
+                cmd.Parameters.AddWithValue("@CCD_CREATED_BY", Username);
+                conn.Open();
+                int result = cmd.ExecuteNonQuery();
+                conn.Close();
+
+                return Ok(new
+                {
+                    Message = "clientTXN data inserted successfully",
+                    RowsAffected = result
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new
+            {
+                Message = "Unexpected error occurred",
+                Error = ex.Message
+            });
+        }
+    }
+
     [HttpPost("changepassword")]
     public IActionResult ChangePassword([FromBody] ChangePasswordRequest request)
     {
@@ -131,7 +167,7 @@ public class ClientMasterController : ControllerBase
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
 
-                    cmd.Parameters.AddWithValue("@MODE", "CPWD");
+                    cmd.Parameters.AddWithValue("@FLAG", "CPWD");
                     cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_NAME", request.Username);
                     cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_PWD", oldPasswordHash);
                     cmd.Parameters.AddWithValue("@NEW_PASSWORD", newPasswordHash);
@@ -217,6 +253,7 @@ public class ClientMasterController : ControllerBase
                 cmd.Parameters.AddWithValue("@CLT_EMAIL_ID", client.CLT_EMAIL_ID ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@CLT_CLIENT_LASTNAME", client.CLT_CLIENT_LASTNAME ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@CLT_CLIENT_FIRSTNAME", client.CLT_CLIENT_FIRSTNAME ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@CLT_BRANCH_ID", client.CLT_BRANCH_ID ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@CLT_CREATED_BY", CREATEDBY);
                 var clientIdParam = new SqlParameter("@CLT_CLIENT_ID", SqlDbType.VarChar, 50)
                 {
@@ -228,6 +265,7 @@ public class ClientMasterController : ControllerBase
                 string generatedClientId = clientIdParam.Value?.ToString();
                 conn.Close();
                 AgentLoginInsert(generatedClientId, client.CLT_CLIENT_TITLE, client.CLT_CLIENT_NAME, client.CLT_CLIENT_FIRSTNAME, client.CLT_CLIENT_LASTNAME, client.CLT_EMAIL_ID, client.CLT_MOBILE_NO, password);
+                ClientLogInsert(generatedClientId, CREATEDBY);
                 string htmlContent = EmailTemplateGenerator.GetHtml($"{client.CLT_CLIENT_FIRSTNAME} {client.CLT_CLIENT_LASTNAME}", client.CLT_EMAIL_ID, password, EmailTemplateType.Welcome, WelcomeTemplateVariant.Format3);
                 var emailSender = new EmailSender(_configuration);
                 emailSender.SendEmail(client.CLT_EMAIL_ID, "Welcome to Our Platform", htmlContent);

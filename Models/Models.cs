@@ -16,8 +16,7 @@ namespace AgentCreation.Models
         public string CLT_EMAIL_ID { get; set; }
         public string CLT_CLIENT_LASTNAME { get; set; }
         public string CLT_CLIENT_FIRSTNAME { get; set; }
-        //[JsonIgnore]
-        //public string CLT_CREATED_BY { get; set; }
+        public string CLT_BRANCH_ID { get; set; }
 
     }
     public class ClientUpdateModel
