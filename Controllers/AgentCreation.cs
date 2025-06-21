@@ -115,81 +115,81 @@ public class ClientMasterController : ControllerBase
             });
         }
     }
-[HttpPost("changepassword")]
-public IActionResult ChangePassword([FromBody] ChangePasswordRequest request)
-{
-    try
+    [HttpPost("changepassword")]
+    public IActionResult ChangePassword([FromBody] ChangePasswordRequest request)
     {
-        using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
+        try
         {
-            conn.Open();
-
-            string oldPasswordHash = AesEncryption.SHAPROCESS(request.OldPassword);
-            string newPasswordHash = AesEncryption.SHAPROCESS(request.NewPassword);
-
-            using (SqlCommand cmd = new SqlCommand("InsertTerminalLogin", conn))
+            using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
             {
-                cmd.CommandType = CommandType.StoredProcedure;
+                conn.Open();
 
-                cmd.Parameters.AddWithValue("@MODE", "CPWD");
-                cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_NAME", request.Username);
-                cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_PWD", oldPasswordHash);
-                cmd.Parameters.AddWithValue("@NEW_PASSWORD", newPasswordHash);
+                string oldPasswordHash = AesEncryption.SHAPROCESS(request.OldPassword);
+                string newPasswordHash = AesEncryption.SHAPROCESS(request.NewPassword);
 
-                var result = cmd.ExecuteScalar()?.ToString();
-
-                return result switch
+                using (SqlCommand cmd = new SqlCommand("InsertTerminalLogin", conn))
                 {
-                    "SUCCESS" => Ok("Password changed successfully."),
-                    "INVALID_OLD_PASSWORD" => Unauthorized("Old password is incorrect."),
-                    "PASSWORD_ALREADY_USED" => BadRequest("New password cannot be the same as old password."),
-                    "USER_NOT_FOUND" => NotFound("User not found."),
-                    _ => BadRequest("Password change failed.")
-                };
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    cmd.Parameters.AddWithValue("@MODE", "CPWD");
+                    cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_NAME", request.Username);
+                    cmd.Parameters.AddWithValue("@LGN_TERMINAL_LOGIN_PWD", oldPasswordHash);
+                    cmd.Parameters.AddWithValue("@NEW_PASSWORD", newPasswordHash);
+
+                    var result = cmd.ExecuteScalar()?.ToString();
+
+                    return result switch
+                    {
+                        "SUCCESS" => Ok("Password changed successfully."),
+                        "INVALID_OLD_PASSWORD" => Unauthorized("Old password is incorrect."),
+                        "PASSWORD_ALREADY_USED" => BadRequest("New password cannot be the same as old password."),
+                        "USER_NOT_FOUND" => NotFound("User not found."),
+                        _ => BadRequest("Password change failed.")
+                    };
+                }
             }
         }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
-    catch (Exception ex)
-    {
-        return StatusCode(500, $"Internal server error: {ex.Message}");
-    }
-}
 
 
-//     [HttpPost("changepassword")]
-// public IActionResult ChangePassword([FromBody] ChangePasswordRequest request)
-// {
-//     using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
-//     {
-//         conn.Open();
+    //     [HttpPost("changepassword")]
+    // public IActionResult ChangePassword([FromBody] ChangePasswordRequest request)
+    // {
+    //     using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
+    //     {
+    //         conn.Open();
 
-//         // 1. Fetch stored password hash
-//         using (SqlCommand cmd = new SqlCommand("SELECT LGN_TERMINAL_LOGIN_PWD FROM T_M_LOGIN WHERE LGN_TERMINAL_LOGIN_NAME = @Username", conn))
-//         {
-//             cmd.Parameters.AddWithValue("@Username", request.Username);
-//             var storedHash = cmd.ExecuteScalar()?.ToString();
+    //         // 1. Fetch stored password hash
+    //         using (SqlCommand cmd = new SqlCommand("SELECT LGN_TERMINAL_LOGIN_PWD FROM T_M_LOGIN WHERE LGN_TERMINAL_LOGIN_NAME = @Username", conn))
+    //         {
+    //             cmd.Parameters.AddWithValue("@Username", request.Username);
+    //             var storedHash = cmd.ExecuteScalar()?.ToString();
 
-//             if (storedHash == null)
-//                 return NotFound("User not found");
+    //             if (storedHash == null)
+    //                 return NotFound("User not found");
 
-//             // 2. Compare hash of provided old password
-//             string oldPasswordHash = AesEncryption.SHAPROCESS(request.OldPassword);
-//             if (storedHash != oldPasswordHash)
-//                 return Unauthorized("Old password is incorrect");
-//         }
+    //             // 2. Compare hash of provided old password
+    //             string oldPasswordHash = AesEncryption.SHAPROCESS(request.OldPassword);
+    //             if (storedHash != oldPasswordHash)
+    //                 return Unauthorized("Old password is incorrect");
+    //         }
 
-//         // 3. Hash new password and update it
-//         string newPasswordHash = AesEncryption.SHAPROCESS(request.NewPassword);
-//         using (SqlCommand updateCmd = new SqlCommand("UPDATE T_M_LOGIN SET LGN_TERMINAL_LOGIN_PWD = @NewHash WHERE LGN_TERMINAL_LOGIN_NAME = @Username", conn))
-//         {
-//             updateCmd.Parameters.AddWithValue("@NewHash", newPasswordHash);
-//             updateCmd.Parameters.AddWithValue("@Username", request.Username);
-//             updateCmd.ExecuteNonQuery();
-//         }
+    //         // 3. Hash new password and update it
+    //         string newPasswordHash = AesEncryption.SHAPROCESS(request.NewPassword);
+    //         using (SqlCommand updateCmd = new SqlCommand("UPDATE T_M_LOGIN SET LGN_TERMINAL_LOGIN_PWD = @NewHash WHERE LGN_TERMINAL_LOGIN_NAME = @Username", conn))
+    //         {
+    //             updateCmd.Parameters.AddWithValue("@NewHash", newPasswordHash);
+    //             updateCmd.Parameters.AddWithValue("@Username", request.Username);
+    //             updateCmd.ExecuteNonQuery();
+    //         }
 
-//         return Ok("Password updated successfully");
-//     }
-// }
+    //         return Ok("Password updated successfully");
+    //     }
+    // }
 
 
 
@@ -259,18 +259,18 @@ public IActionResult ChangePassword([FromBody] ChangePasswordRequest request)
         }
     }
 
-        [HttpPost("branchdetails")]
-        public IActionResult InsertBranch([FromBody] BranchModel model)
+    [HttpPost("branchdetails")]
+    public IActionResult InsertBranch([FromBody] BranchModel model)
+    {
+        var createdBy = HttpContext.Session.GetString("LoggedInUsername");
+
+        if (string.IsNullOrEmpty(createdBy))
+            return Unauthorized("User not logged in.");
+
+        try
         {
-            var createdBy = HttpContext.Session.GetString("LoggedInUsername");
-
-            if (string.IsNullOrEmpty(createdBy))
-                return Unauthorized("User not logged in.");
-
-            try
-            {
-                Console.WriteLine(model.BranchName+","+model.AgentId+","+model.Address+","+ model.StateCode + ","+model.CityCode+","+ model.CountryCode);
-                using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
+            Console.WriteLine(model.BranchName + "," + model.AgentId + "," + model.Address + "," + model.StateCode + "," + model.CityCode + "," + model.CountryCode);
+            using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
             using (SqlCommand cmd = new SqlCommand("InsertBranchDetails", conn))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
@@ -291,71 +291,72 @@ public IActionResult ChangePassword([FromBody] ChangePasswordRequest request)
                 else
                     return StatusCode(500, "Failed to insert branch.");
             }
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, "Error: " + ex.Message);
-            }
         }
+        catch (Exception ex)
+        {
+            return StatusCode(500, "Error: " + ex.Message);
+        }
+    }
 
 
 
     [HttpPost("agentinsert")]
-public IActionResult InsertAgent([FromBody] AgentModel model)
-{
-    var createdBy = HttpContext.Session.GetString("LoggedInUsername");
-
-    if (string.IsNullOrEmpty(createdBy))
-        return Unauthorized("User not logged in.");
-
-    try
+    public IActionResult InsertAgent([FromBody] AgentModel model)
     {
-        using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
-        using (SqlCommand cmd = new SqlCommand("InsertAgentDetails", conn))
+        var createdBy = HttpContext.Session.GetString("LoggedInUsername");
+
+        if (string.IsNullOrEmpty(createdBy))
+            return Unauthorized("User not logged in.");
+
+        try
         {
-            cmd.CommandType = CommandType.StoredProcedure;
+            using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
+            using (SqlCommand cmd = new SqlCommand("InsertAgentDetails", conn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
 
-            cmd.Parameters.AddWithValue("@AGN_AGENT_ID", "");
-            cmd.Parameters.AddWithValue("@AGN_AGENT_TYPE", model.AGN_AGENT_TYPE ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@AGN_AGENCY_NAME", model.AGN_AGENCY_NAME ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@AGN_BRANCH_ID", "");
-            cmd.Parameters.AddWithValue("@AGN_TERMINAL_COUNT", "");
-            cmd.Parameters.AddWithValue("@AGN_AGENT_TITLE", model.AGN_AGENT_TITLE ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@AGN_AGENT_FIRSTNAME", model.AGN_AGENT_FIRSTNAME ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@AGN_AGENT_LASTNAME", model.AGN_AGENT_LASTNAME ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@AGN_AGENT_SALESMAN", model.AGN_AGENT_SALESMAN ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@AGN_PHONE_NO", model.AGN_PHONE_NO ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@AGN_MOBILE_NO", model.AGN_MOBILE_NO ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@AGN_FAX_NO", model.AGN_FAX_NO ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@AGN_EMAIL_ID", model.AGN_EMAIL_ID ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@AGN_ALTEREMAIL_ID", model.AGN_ALTEREMAIL_ID ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@AGN_ADDRESS_1", model.AGN_ADDRESS_1 ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@AGN_COUNTRY_ID", model.AGN_COUNTRY_ID ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@AGN_STATE_ID", model.AGN_STATE_ID ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@AGN_CITY_ID", model.AGN_CITY_ID ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@AGN_CURRENT_BALANCE_AMT", model.AGN_CURRENT_BALANCE_AMT);
-            cmd.Parameters.AddWithValue("@AGN_TOTAL_DEPOSIT_AMT", model.AGN_TOTAL_DEPOSIT_AMT);
-            cmd.Parameters.AddWithValue("@AGN_CURRENT_CREDIT_BALANCE", model.AGN_CURRENT_CREDIT_BALANCE);
-            cmd.Parameters.AddWithValue("@AGN_AGENT_REMARKS", model.AGN_AGENT_REMARKS ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@AGN_AGENT_ACTIVESTATUS", model.AGN_AGENT_ACTIVESTATUS);
-            cmd.Parameters.AddWithValue("@AGN_CREATED_BY", createdBy);
+                cmd.Parameters.AddWithValue("@AGN_AGENT_TYPE", model.AGN_AGENT_TYPE ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_AGENCY_NAME", model.AGN_AGENCY_NAME ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_AGENT_TITLE", model.AGN_AGENT_TITLE ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_AGENT_FIRSTNAME", model.AGN_AGENT_FIRSTNAME ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_AGENT_LASTNAME", model.AGN_AGENT_LASTNAME ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_AGENT_SALESMAN", model.AGN_AGENT_SALESMAN ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_PHONE_NO", model.AGN_PHONE_NO ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_MOBILE_NO", model.AGN_MOBILE_NO ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_FAX_NO", model.AGN_FAX_NO ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_EMAIL_ID", model.AGN_EMAIL_ID ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_ALTEREMAIL_ID", model.AGN_ALTEREMAIL_ID ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_ADDRESS_1", model.AGN_ADDRESS_1 ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_COUNTRY_ID", model.AGN_COUNTRY_ID ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_STATE_ID", model.AGN_STATE_ID ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_CITY_ID", model.AGN_CITY_ID ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_CURRENT_BALANCE_AMT", model.AGN_CURRENT_BALANCE_AMT);
+                cmd.Parameters.AddWithValue("@AGN_TOTAL_DEPOSIT_AMT", model.AGN_TOTAL_DEPOSIT_AMT);
+                cmd.Parameters.AddWithValue("@AGN_CURRENT_CREDIT_BALANCE", model.AGN_CURRENT_CREDIT_BALANCE);
+                cmd.Parameters.AddWithValue("@AGN_AGENT_REMARKS", model.AGN_AGENT_REMARKS ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_AGENT_ACTIVESTATUS", model.AGN_AGENT_ACTIVESTATUS);
+                cmd.Parameters.AddWithValue("@AGN_CREATED_BY", createdBy);
+                SqlParameter outputIdParam = new SqlParameter("@GeneratedAgentId", SqlDbType.VarChar, 50)
+                {
+                    Direction = ParameterDirection.Output
+                };
+                cmd.Parameters.Add(outputIdParam);
+                conn.Open();
+                int rows = cmd.ExecuteNonQuery();
 
-            conn.Open();
-            int rows = cmd.ExecuteNonQuery();
-
-            if (rows > 0)
-                return Ok(new { message = "Agent inserted successfully." });
-            else
-                return StatusCode(500, "Failed to insert agent.");
+                if (rows > 0)
+                    return Ok(new { message = "Agent inserted successfully." });
+                else
+                    return StatusCode(500, "Failed to insert agent.");
+            }
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, "Error: " + ex.Message);
         }
     }
-    catch (Exception ex)
-    {
-        return StatusCode(500, "Error: " + ex.Message);
-    }
-}
 
-[HttpPost("insertagentrequest")]
+    [HttpPost("insertagentrequest")]
     public IActionResult InsertAgentRequest([FromBody] AgentRequestModel model)
     {
         try
@@ -387,15 +388,15 @@ public IActionResult InsertAgent([FromBody] AgentModel model)
 
 
     [HttpPost("insertgroup")]
-public IActionResult InsertGroup([FromBody] GroupDetailsModel model)
-{
-    
-    try
-        {
-                var createdBy = HttpContext.Session.GetString("LoggedInUsername");
+    public IActionResult InsertGroup([FromBody] GroupDetailsModel model)
+    {
 
-    if (string.IsNullOrEmpty(createdBy))
-        return Unauthorized("User not logged in.");
+        try
+        {
+            var createdBy = HttpContext.Session.GetString("LoggedInUsername");
+
+            if (string.IsNullOrEmpty(createdBy))
+                return Unauthorized("User not logged in.");
             using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
             using (SqlCommand cmd = new SqlCommand("InsertGroupDetails", conn))
             {
@@ -424,7 +425,7 @@ public IActionResult InsertGroup([FromBody] GroupDetailsModel model)
         {
             return StatusCode(500, "Error inserting group: " + ex.Message);
         }
-}
+    }
 
 
     [AllowRole("Admin", "Sales")]
