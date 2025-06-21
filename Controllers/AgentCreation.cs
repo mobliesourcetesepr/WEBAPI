@@ -315,11 +315,11 @@ public IActionResult InsertAgent([FromBody] AgentModel model)
         {
             cmd.CommandType = CommandType.StoredProcedure;
 
-            //cmd.Parameters.AddWithValue("@AGN_AGENT_ID", model.AGN_AGENT_ID ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@AGN_AGENT_ID", "");
             cmd.Parameters.AddWithValue("@AGN_AGENT_TYPE", model.AGN_AGENT_TYPE ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@AGN_AGENCY_NAME", model.AGN_AGENCY_NAME ?? (object)DBNull.Value);
-            //cmd.Parameters.AddWithValue("@AGN_BRANCH_ID", model.AGN_BRANCH_ID ?? (object)DBNull.Value);
-            //cmd.Parameters.AddWithValue("@AGN_TERMINAL_COUNT", model.AGN_TERMINAL_COUNT);
+            cmd.Parameters.AddWithValue("@AGN_BRANCH_ID", "");
+            cmd.Parameters.AddWithValue("@AGN_TERMINAL_COUNT", "");
             cmd.Parameters.AddWithValue("@AGN_AGENT_TITLE", model.AGN_AGENT_TITLE ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@AGN_AGENT_FIRSTNAME", model.AGN_AGENT_FIRSTNAME ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@AGN_AGENT_LASTNAME", model.AGN_AGENT_LASTNAME ?? (object)DBNull.Value);
@@ -337,6 +337,7 @@ public IActionResult InsertAgent([FromBody] AgentModel model)
             cmd.Parameters.AddWithValue("@AGN_TOTAL_DEPOSIT_AMT", model.AGN_TOTAL_DEPOSIT_AMT);
             cmd.Parameters.AddWithValue("@AGN_CURRENT_CREDIT_BALANCE", model.AGN_CURRENT_CREDIT_BALANCE);
             cmd.Parameters.AddWithValue("@AGN_AGENT_REMARKS", model.AGN_AGENT_REMARKS ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@AGN_AGENT_ACTIVESTATUS", model.AGN_AGENT_ACTIVESTATUS);
             cmd.Parameters.AddWithValue("@AGN_CREATED_BY", createdBy);
 
             conn.Open();
@@ -353,6 +354,36 @@ public IActionResult InsertAgent([FromBody] AgentModel model)
         return StatusCode(500, "Error: " + ex.Message);
     }
 }
+
+[HttpPost("insertagentrequest")]
+    public IActionResult InsertAgentRequest([FromBody] AgentRequestModel model)
+    {
+        try
+        {
+            using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
+            using (SqlCommand cmd = new SqlCommand("InsertAgentRequest", conn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@AGN_AGENCY_NAME", model.AGN_AGENCY_NAME ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_AGENT_TITLE", model.AGN_AGENT_TITLE ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_AGENT_FIRSTNAME", model.AGN_AGENT_FIRSTNAME ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_AGENT_LASTNAME", model.AGN_AGENT_LASTNAME ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_PHONE_NO", model.AGN_PHONE_NO ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_MOBILE_NO", model.AGN_MOBILE_NO ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_EMAIL_ID", model.AGN_EMAIL_ID ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_ADDRESS_1", model.AGN_ADDRESS_1 ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@AGN_COUNTRY_ID", model.AGN_COUNTRY_ID);
+                cmd.Parameters.AddWithValue("@AGN_CITY_ID", model.AGN_CITY_ID);
+                conn.Open();
+                cmd.ExecuteNonQuery();
+                return Ok("Agent request inserted successfully.");
+            }
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, "Error inserting agent request: " + ex.Message);
+        }
+    }
 
 
 
