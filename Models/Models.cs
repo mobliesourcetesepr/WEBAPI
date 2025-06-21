@@ -68,4 +68,31 @@ namespace AgentCreation.Models
         public string StateCode { get; set; }
         public string CityCode { get; set; }
     }
+    public class AgentModel
+{
+    //public string AGN_AGENT_ID { get; set; }
+    public string AGN_AGENT_TYPE { get; set; }
+    public string AGN_AGENCY_NAME { get; set; }
+    //public string AGN_BRANCH_ID { get; set; }
+    //public int AGN_TERMINAL_COUNT { get; set; }
+    public string AGN_AGENT_TITLE { get; set; }
+    public string AGN_AGENT_FIRSTNAME { get; set; }
+    public string AGN_AGENT_LASTNAME { get; set; }
+    public bool AGN_AGENT_ACTIVESTATUS { get; set; }
+    public string AGN_AGENT_SALESMAN { get; set; }
+    public string AGN_PHONE_NO { get; set; }
+    public string AGN_MOBILE_NO { get; set; }
+    public string AGN_FAX_NO { get; set; }
+    public string AGN_EMAIL_ID { get; set; }
+    public string AGN_ALTEREMAIL_ID { get; set; }
+    public string AGN_ADDRESS_1 { get; set; }
+    public string AGN_COUNTRY_ID { get; set; }
+    public string AGN_STATE_ID { get; set; }
+    public string AGN_CITY_ID { get; set; }
+    public decimal AGN_CURRENT_BALANCE_AMT { get; set; }
+    public decimal AGN_TOTAL_DEPOSIT_AMT { get; set; }
+    public decimal AGN_CURRENT_CREDIT_BALANCE { get; set; }
+    public string AGN_AGENT_REMARKS { get; set; }
+}
+
 }

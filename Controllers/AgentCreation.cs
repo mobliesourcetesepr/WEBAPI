@@ -299,6 +299,63 @@ public IActionResult ChangePassword([FromBody] ChangePasswordRequest request)
         }
 
 
+
+    [HttpPost("agentinsert")]
+public IActionResult InsertAgent([FromBody] AgentModel model)
+{
+    var createdBy = HttpContext.Session.GetString("LoggedInUsername");
+
+    if (string.IsNullOrEmpty(createdBy))
+        return Unauthorized("User not logged in.");
+
+    try
+    {
+        using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
+        using (SqlCommand cmd = new SqlCommand("InsertAgentDetails", conn))
+        {
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            //cmd.Parameters.AddWithValue("@AGN_AGENT_ID", model.AGN_AGENT_ID ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@AGN_AGENT_TYPE", model.AGN_AGENT_TYPE ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@AGN_AGENCY_NAME", model.AGN_AGENCY_NAME ?? (object)DBNull.Value);
+            //cmd.Parameters.AddWithValue("@AGN_BRANCH_ID", model.AGN_BRANCH_ID ?? (object)DBNull.Value);
+            //cmd.Parameters.AddWithValue("@AGN_TERMINAL_COUNT", model.AGN_TERMINAL_COUNT);
+            cmd.Parameters.AddWithValue("@AGN_AGENT_TITLE", model.AGN_AGENT_TITLE ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@AGN_AGENT_FIRSTNAME", model.AGN_AGENT_FIRSTNAME ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@AGN_AGENT_LASTNAME", model.AGN_AGENT_LASTNAME ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@AGN_AGENT_SALESMAN", model.AGN_AGENT_SALESMAN ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@AGN_PHONE_NO", model.AGN_PHONE_NO ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@AGN_MOBILE_NO", model.AGN_MOBILE_NO ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@AGN_FAX_NO", model.AGN_FAX_NO ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@AGN_EMAIL_ID", model.AGN_EMAIL_ID ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@AGN_ALTEREMAIL_ID", model.AGN_ALTEREMAIL_ID ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@AGN_ADDRESS_1", model.AGN_ADDRESS_1 ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@AGN_COUNTRY_ID", model.AGN_COUNTRY_ID ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@AGN_STATE_ID", model.AGN_STATE_ID ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@AGN_CITY_ID", model.AGN_CITY_ID ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@AGN_CURRENT_BALANCE_AMT", model.AGN_CURRENT_BALANCE_AMT);
+            cmd.Parameters.AddWithValue("@AGN_TOTAL_DEPOSIT_AMT", model.AGN_TOTAL_DEPOSIT_AMT);
+            cmd.Parameters.AddWithValue("@AGN_CURRENT_CREDIT_BALANCE", model.AGN_CURRENT_CREDIT_BALANCE);
+            cmd.Parameters.AddWithValue("@AGN_AGENT_REMARKS", model.AGN_AGENT_REMARKS ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@AGN_CREATED_BY", createdBy);
+
+            conn.Open();
+            int rows = cmd.ExecuteNonQuery();
+
+            if (rows > 0)
+                return Ok(new { message = "Agent inserted successfully." });
+            else
+                return StatusCode(500, "Failed to insert agent.");
+        }
+    }
+    catch (Exception ex)
+    {
+        return StatusCode(500, "Error: " + ex.Message);
+    }
+}
+
+
+
     [AllowRole("Admin", "Sales")]
     [HttpPut("update-client/{clientId}")]
     public IActionResult UpdateClient([FromHeader(Name = "X-Bearer-Token")] string token, string clientId, [FromBody] ClientUpdateModel client)
