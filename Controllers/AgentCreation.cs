@@ -386,6 +386,46 @@ public IActionResult InsertAgent([FromBody] AgentModel model)
     }
 
 
+    [HttpPost("insertgroup")]
+public IActionResult InsertGroup([FromBody] GroupDetailsModel model)
+{
+    
+    try
+        {
+                var createdBy = HttpContext.Session.GetString("LoggedInUsername");
+
+    if (string.IsNullOrEmpty(createdBy))
+        return Unauthorized("User not logged in.");
+            using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
+            using (SqlCommand cmd = new SqlCommand("InsertGroupDetails", conn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.AddWithValue("@GRP_STATUS", model.GRP_STATUS);
+                cmd.Parameters.AddWithValue("@GRP_CREATED_BY", createdBy ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@GRP_GROUP_NAME", model.GRP_GROUP_NAME ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@GRP_CURRENCY_CODE", model.GRP_CURRENCY_CODE ?? (object)DBNull.Value);
+
+                // OUTPUT parameter
+                SqlParameter outputIdParam = new SqlParameter("@GeneratedGroupId", SqlDbType.VarChar, 50)
+                {
+                    Direction = ParameterDirection.Output
+                };
+                cmd.Parameters.Add(outputIdParam);
+
+                conn.Open();
+                cmd.ExecuteNonQuery();
+
+                string generatedId = outputIdParam.Value.ToString();
+                return Ok(new { Message = "Group inserted successfully.", GroupId = generatedId });
+            }
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, "Error inserting group: " + ex.Message);
+        }
+}
+
 
     [AllowRole("Admin", "Sales")]
     [HttpPut("update-client/{clientId}")]

@@ -96,17 +96,31 @@ namespace AgentCreation.Models
     }
 
     public class AgentRequestModel
-{
-    public string AGN_AGENCY_NAME { get; set; }
-    public string AGN_AGENT_TITLE { get; set; }
-    public string AGN_AGENT_FIRSTNAME { get; set; }
-    public string AGN_AGENT_LASTNAME { get; set; }
-    public string AGN_PHONE_NO { get; set; }
-    public string AGN_MOBILE_NO { get; set; }
-    public string AGN_EMAIL_ID { get; set; }
-    public string AGN_ADDRESS_1 { get; set; }
-    public string AGN_COUNTRY_ID { get; set; }
-    public string AGN_CITY_ID { get; set; }
-}
+    {
+        public string AGN_AGENCY_NAME { get; set; }
+        public string AGN_AGENT_TITLE { get; set; }
+        public string AGN_AGENT_FIRSTNAME { get; set; }
+        public string AGN_AGENT_LASTNAME { get; set; }
+        public string AGN_PHONE_NO { get; set; }
+        public string AGN_MOBILE_NO { get; set; }
+        public string AGN_EMAIL_ID { get; set; }
+        public string AGN_ADDRESS_1 { get; set; }
+        public string AGN_COUNTRY_ID { get; set; }
+        public string AGN_CITY_ID { get; set; }
+    }
+
+    public class GroupDetailsModel
+    {
+        public bool GRP_STATUS { get; set; }
+        public string GRP_GROUP_NAME { get; set; }
+       // public string GRP_UPDATED_BY { get; set; }
+        //public string GRP_BRANCH_ID { get; set; }
+        //public string GRP_RCODE { get; set; }
+        //public string GRP_GROUP_ID { get; set; }
+       // public string GRP_CUR_CODE { get; set; }
+        //public string GRP_REMARKS { get; set; }
+        public string GRP_CURRENCY_CODE { get; set; }
+    }
+
 
 }
