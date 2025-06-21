@@ -1,5 +1,6 @@
 
 using Microsoft.EntityFrameworkCore;
+using AgentCreation.Models;
 namespace AgentCreation.Data
 {
     public class UserDbContext : DbContext

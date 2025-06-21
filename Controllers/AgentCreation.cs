@@ -7,6 +7,7 @@ using Microsoft.Data.SqlClient;
 using AgentCreation.Data;
 using AgentCreation.Services;
 using System.Text.Json;
+using AgentCreation.Models;
 using AgentCreation.Helpers;
 using System.Security.Cryptography;
 using Swashbuckle.AspNetCore.Annotations;
@@ -257,6 +258,47 @@ public IActionResult ChangePassword([FromBody] ChangePasswordRequest request)
             });
         }
     }
+
+        [HttpPost("branchdetails")]
+        public IActionResult InsertBranch([FromBody] BranchModel model)
+        {
+            var createdBy = HttpContext.Session.GetString("LoggedInUsername");
+
+            if (string.IsNullOrEmpty(createdBy))
+                return Unauthorized("User not logged in.");
+
+            try
+            {
+                Console.WriteLine(model.BranchName+","+model.AgentId+","+model.Address+","+ model.StateCode + ","+model.CityCode+","+ model.CountryCode);
+                using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
+            using (SqlCommand cmd = new SqlCommand("InsertBranchDetails", conn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@BRH_BRANCH_NAME", model.BranchName ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@BRH_ADDRESS", model.Address ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@BRH_BOA_AGENTID", model.AgentId ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@BRH_STATE_CODE", model.StateCode ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@BRH_CITY_CODE", model.CityCode ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@BRH_COUNTRY_CODE", model.CountryCode ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@BRH_CREATED_BY", createdBy ?? (object)DBNull.Value);
+                cmd.Parameters.Add("@BRH_BRANCH_ID", SqlDbType.NVarChar, 50).Direction = ParameterDirection.Output;
+
+                conn.Open();
+                int rows = cmd.ExecuteNonQuery();
+
+                if (rows > 0)
+                    return Ok(new { message = "Branch inserted successfully." });
+                else
+                    return StatusCode(500, "Failed to insert branch.");
+            }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Error: " + ex.Message);
+            }
+        }
+
+
     [AllowRole("Admin", "Sales")]
     [HttpPut("update-client/{clientId}")]
     public IActionResult UpdateClient([FromHeader(Name = "X-Bearer-Token")] string token, string clientId, [FromBody] ClientUpdateModel client)
