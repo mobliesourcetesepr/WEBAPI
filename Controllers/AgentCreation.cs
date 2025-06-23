@@ -7,11 +7,12 @@ using Microsoft.Data.SqlClient;
 using AgentCreation.Data;
 using AgentCreation.Services;
 using System.Text.Json;
-using AgentCreation.Models;
+
 using AgentCreation.Helpers;
 using System.Security.Cryptography;
 using Swashbuckle.AspNetCore.Annotations;
 using AgentCreation.Utilities;
+using AgentCreation.Models;
 
 [Route("api")]
 [ApiController]
