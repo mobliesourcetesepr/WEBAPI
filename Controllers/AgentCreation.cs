@@ -436,9 +436,9 @@ public IActionResult GetFilteredAirBookedHistory([FromBody] AirBookedHistoryMode
             {
                 cmd.CommandType = CommandType.StoredProcedure;
 
+                cmd.Parameters.AddWithValue("@AgentId", (object?)AirBookedHistoryModel.ABH_AGENT_ID ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@FromDate", (object?)AirBookedHistoryModel.ABH_BOOKED_DATE ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@ToDate", (object?)AirBookedHistoryModel.ToDate ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@ClientId", (object?)AirBookedHistoryModel.ABH_PASSENGER_NAME ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@SPNR", (object?)AirBookedHistoryModel.ABH_S_PNR ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@Status", (object?)AirBookedHistoryModel.ABH_STATUS?? DBNull.Value);
 
