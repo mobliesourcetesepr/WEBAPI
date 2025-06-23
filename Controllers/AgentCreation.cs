@@ -336,7 +336,171 @@ public class ClientMasterController : ControllerBase
         }
     }
 
+    [HttpPost("Roleinsert")]
+        public IActionResult InsertRole([FromBody] RoleModel model)
+        {
+            var createdBy = HttpContext.Session.GetString("LoggedInUsername");
+            if (string.IsNullOrEmpty(createdBy))
+                return Unauthorized("User not logged in.");
 
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
+                using (SqlCommand cmd = new SqlCommand("InsertRole", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@ROLE_NAME", model.ROLE_NAME ?? (object)DBNull.Value); 
+                    cmd.Parameters.AddWithValue("@CREATED_BY", createdBy ?? (object)DBNull.Value);
+
+                    conn.Open();
+                    cmd.ExecuteNonQuery();
+                    conn.Close();
+
+                    return Ok("Role inserted successfully.");
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error inserting role: {ex.Message}");
+            }
+        }
+//[HttpGet("get-user-details")]
+// public IActionResult GetUserDetails([FromBody] ScreenAccess Access)
+// {
+//     //var tenantId = HttpContext.Session.GetString("TenantId");
+//     var roleId = Access.Roleid;
+
+//     if (!HasScreenAccess(roleId, "/api/get-user-details"))
+//         return Forbid("Access denied.");
+
+//     // Continue if allowed
+//     return Ok(new { message = "Access granted." });
+// }
+    // private bool HasScreenAccess(string roleId, string route)
+    // {
+    //     using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
+    //     {
+    //         using (SqlCommand cmd = new SqlCommand("CheckScreenAccess", conn))
+    //         {
+    //             cmd.CommandType = CommandType.StoredProcedure;
+    //             cmd.Parameters.AddWithValue("@ROLE_ID", roleId);
+    //             cmd.Parameters.AddWithValue("@ROUTE", route.ToLower());
+
+    //             conn.Open();
+    //             var result = Convert.ToInt32(cmd.ExecuteScalar());
+    //             return result == 1;
+    //         }
+    //     }
+    // }
+
+ [HttpPost("update-balance")]
+    public IActionResult UpdateCustomerBalance([FromBody] UpdateBalanceModel model)
+    {
+        if (string.IsNullOrWhiteSpace(model.Remarks))
+            return BadRequest("Remarks are required.");
+
+        try
+        {
+            using var conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection"));
+            using var cmd = new SqlCommand("UpdateCustomerBalance", conn);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.AddWithValue("@CustomerName", model.CustomerName ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@PaymentMode", model.PaymentMode ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@Amount", model.Amount);
+            cmd.Parameters.AddWithValue("@Remarks", model.Remarks);
+
+            conn.Open();
+            cmd.ExecuteNonQuery();
+            return Ok("Customer balance updated successfully.");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
+    }
+
+
+    [HttpPost("getfilteredhistory")]
+public IActionResult GetFilteredAirBookedHistory([FromBody] AirBookedHistoryModel AirBookedHistoryModel)
+{
+    List<AirBookedHistoryResponseModel> historyList = new List<AirBookedHistoryResponseModel>();
+
+    try
+    {
+        using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
+        {
+            conn.Open();
+            using (SqlCommand cmd = new SqlCommand("GetAirBookedHistoryFiltered", conn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.AddWithValue("@FromDate", (object?)AirBookedHistoryModel.ABH_BOOKED_DATE ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@ToDate", (object?)AirBookedHistoryModel.ToDate ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@ClientId", (object?)AirBookedHistoryModel.ABH_PASSENGER_NAME ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@SPNR", (object?)AirBookedHistoryModel.ABH_S_PNR ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Status", (object?)AirBookedHistoryModel.ABH_STATUS?? DBNull.Value);
+
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        historyList.Add(new AirBookedHistoryResponseModel
+                        {
+                            ABH_S_PNR = reader["ABH_S_PNR"].ToString() ,
+                            ABH_BOOKED_DATE = reader["ABH_BOOKED_DATE"] as DateTime?,
+                            ABH_TOTAL_FARE = reader["ABH_TOTAL_FARE"] as decimal?,
+                            ABH_PASSENGER_NAME = reader["ABH_PASSENGER_NAME"]?.ToString(),
+                            ABH_STATUS = reader["ABH_STATUS"]?.ToString(),
+                            ABH_SECTOR = reader["ABH_SECTOR"]?.ToString(),
+                            ABH_DEPARTURE_DATE = reader["ABH_DEPARTURE_DATE"] as DateTime?
+                        });
+                    }
+                }
+            }
+        }
+
+        return Ok(historyList);
+    }
+    catch (Exception ex)
+    {
+        return StatusCode(500, "Internal server error: " + ex.Message);
+    }
+}
+
+
+    [HttpPost("Roleaccess")]
+    public IActionResult AssignAccess([FromBody] RoleScreenAccessModel model)
+    {
+          var createdBy = HttpContext.Session.GetString("LoggedInUsername");
+            if (string.IsNullOrEmpty(createdBy))
+                return Unauthorized("User not logged in.");
+        try
+        {
+            using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("SqlServerConnection")))
+            using (SqlCommand cmd = new SqlCommand("RoleBasedScreenAccess", conn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.AddWithValue("@ROLE_ID", model.RoleId);
+                cmd.Parameters.AddWithValue("@SCREEN_ROUTE", model.ScreenRoute);
+                cmd.Parameters.AddWithValue("@CAN_VIEW", model.CanView);
+                cmd.Parameters.AddWithValue("@CAN_ADD", model.CanAdd);
+                cmd.Parameters.AddWithValue("@CAN_EDIT", model.CanEdit);
+                cmd.Parameters.AddWithValue("@CAN_DELETE", model.CanDelete);
+                cmd.Parameters.AddWithValue("@CREATED_BY", createdBy ?? "system");
+
+                conn.Open();
+                cmd.ExecuteNonQuery();
+            }
+
+            return Ok("Access rights assigned successfully.");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error: {ex.Message}");
+        }
+    }
 
     [HttpPost("agentinsert")]
     public IActionResult InsertAgent([FromBody] AgentModel model)

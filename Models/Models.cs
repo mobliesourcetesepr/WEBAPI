@@ -112,14 +112,49 @@ namespace AgentCreation.Models
     {
         public bool GRP_STATUS { get; set; }
         public string GRP_GROUP_NAME { get; set; }
-       // public string GRP_UPDATED_BY { get; set; }
+        // public string GRP_UPDATED_BY { get; set; }
         //public string GRP_BRANCH_ID { get; set; }
         //public string GRP_RCODE { get; set; }
         //public string GRP_GROUP_ID { get; set; }
-       // public string GRP_CUR_CODE { get; set; }
+        // public string GRP_CUR_CODE { get; set; }
         //public string GRP_REMARKS { get; set; }
         public string GRP_CURRENCY_CODE { get; set; }
     }
 
+    public class RoleModel
+    {
+        public string ROLE_NAME { get; set; }
+        public string ROLE_DESCRIPTION { get; set; }
+    }
+    
+public class RoleScreenAccessModel
+{
+    public int RoleId { get; set; }
+    public string ScreenRoute { get; set; }
+    public bool CanView { get; set; }
+    public bool CanAdd { get; set; }
+    public bool CanEdit { get; set; }
+    public bool CanDelete { get; set; }
+}
+public class UpdateBalanceModel
+{
+    public string CustomerName { get; set; }
+    public string PaymentMode { get; set; }
+    public decimal Amount { get; set; }
+    public string Remarks { get; set; }
+}
+
+    public class AirBookedHistoryModel
+    {
+        public string? ABH_S_PNR { get; set; }
+        public string? ABH_PASSENGER_NAME { get; set; }
+        public DateTime? ABH_BOOKED_DATE { get; set; }
+        public decimal? ABH_TOTAL_FARE { get; set; }
+        public string? ABH_STATUS { get; set; }
+        public string? ABH_SECTOR { get; set; }
+        [JsonIgnore]
+        public DateTime? ABH_DEPARTURE_DATE { get; set; }
+     public DateTime? ToDate { get; set; }   
+}
 
 }
