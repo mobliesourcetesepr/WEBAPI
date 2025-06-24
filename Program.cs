@@ -1,4 +1,5 @@
 using AgentCreation.Data;
+using AgentCreation.Hubs;
 using AgentCreation.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,6 +14,20 @@ builder.Services.AddOpenApi();
 // ✅ Required for session
 builder.Services.AddDataProtection();
 builder.Services.AddDistributedMemoryCache();
+// ✅ Register SignalR
+builder.Services.AddSignalR();
+
+// Optional: CORS for frontend connection
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowLocalhostFrontend", policy =>
+    {
+        policy.WithOrigins("http://127.0.0.1:5500")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials(); // Required for SignalR
+    });
+});
 
 builder.Services.AddSession(options =>
 {
@@ -34,11 +49,15 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+app.UseCors("AllowLocalhostFrontend");
+ // ✅ Map your SignalR hub endpoint
+app.MapHub<NotificationHub>("/notificationhub");
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseHttpsRedirection();
 app.UseSession(); 
 app.UseAuthorization();
+//app.UseStaticFiles(); // 👈 Enables serving HTML, JS, CSS
 
 app.MapControllers();
 

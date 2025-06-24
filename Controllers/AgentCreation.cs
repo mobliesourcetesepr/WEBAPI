@@ -7,12 +7,13 @@ using Microsoft.Data.SqlClient;
 using AgentCreation.Data;
 using AgentCreation.Services;
 using System.Text.Json;
-
+using AgentCreation.Hubs;
 using AgentCreation.Helpers;
 using System.Security.Cryptography;
 using Swashbuckle.AspNetCore.Annotations;
 using AgentCreation.Utilities;
 using AgentCreation.Models;
+using Microsoft.AspNetCore.SignalR;
 
 [Route("api")]
 [ApiController]
@@ -22,13 +23,16 @@ public class ClientMasterController : ControllerBase
     private readonly UserDbContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly JwtTokenService _tokenService;
-    public ClientMasterController(IConfiguration configuration, UserDbContext context, IHttpContextAccessor httpContextAccessor, JwtTokenService tokenService)
+    private readonly IHubContext<NotificationHub> _hubContext;
+    public ClientMasterController(IConfiguration configuration, UserDbContext context, IHttpContextAccessor httpContextAccessor, JwtTokenService tokenService ,IHubContext<NotificationHub> hubContext)
     {
         _configuration = configuration;
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _tokenService = tokenService;
+        _hubContext = hubContext;
     }
+
 
 
     [HttpPost("Adminlogin")]
@@ -191,6 +195,15 @@ public class ClientMasterController : ControllerBase
             return StatusCode(500, $"Internal server error: {ex.Message}");
         }
     }
+
+
+    [HttpPost("send")]
+        public async Task<IActionResult> SendMessage([FromBody] string message)
+        {
+            // Send message to all connected clients
+             await _hubContext.Clients.All.SendAsync("ReceiveNotification", message);
+            return Ok(new { success = true, message });
+        }
 
 
     //     [HttpPost("changepassword")]
@@ -468,7 +481,7 @@ public IActionResult GetFilteredAirBookedHistory([FromBody] AirBookedHistoryMode
         return StatusCode(500, "Internal server error: " + ex.Message);
     }
 }
-
+    
 
     [HttpPost("Roleaccess")]
     public IActionResult AssignAccess([FromBody] RoleScreenAccessModel model)
