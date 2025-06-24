@@ -153,15 +153,22 @@ public class UpdateBalanceModel
         public DateTime? ToDate { get; set; }   
     
 }
-public class AirBookedHistoryResponseModel
+    public class AirBookedHistoryResponseModel
+    {
+        public string? ABH_S_PNR { get; set; }
+        public string? ABH_PASSENGER_NAME { get; set; }
+        public DateTime? ABH_BOOKED_DATE { get; set; }
+        public decimal? ABH_TOTAL_FARE { get; set; }
+        public string? ABH_STATUS { get; set; }
+        public string? ABH_SECTOR { get; set; }
+        public DateTime? ABH_DEPARTURE_DATE { get; set; }
+    }
+public class UserDto
 {
-    public string? ABH_S_PNR { get; set; }
-    public string? ABH_PASSENGER_NAME { get; set; }
-    public DateTime? ABH_BOOKED_DATE { get; set; }
-    public decimal? ABH_TOTAL_FARE { get; set; }
-    public string? ABH_STATUS { get; set; }
-    public string? ABH_SECTOR { get; set; }
-    public DateTime? ABH_DEPARTURE_DATE { get; set; } 
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public string Email { get; set; }
 }
+
 
 }

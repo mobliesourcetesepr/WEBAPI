@@ -16,6 +16,14 @@ builder.Services.AddDataProtection();
 builder.Services.AddDistributedMemoryCache();
 // ✅ Register SignalR
 builder.Services.AddSignalR();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddMemoryCache();
+
+
+
+
+
+
 
 // Optional: CORS for frontend connection
 builder.Services.AddCors(options =>

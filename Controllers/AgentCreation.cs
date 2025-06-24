@@ -14,6 +14,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using AgentCreation.Utilities;
 using AgentCreation.Models;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Caching.Memory;
 
 [Route("api")]
 [ApiController]
@@ -24,58 +25,114 @@ public class ClientMasterController : ControllerBase
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly JwtTokenService _tokenService;
     private readonly IHubContext<NotificationHub> _hubContext;
-    public ClientMasterController(IConfiguration configuration, UserDbContext context, IHttpContextAccessor httpContextAccessor, JwtTokenService tokenService ,IHubContext<NotificationHub> hubContext)
+    private readonly IMemoryCache _cache;
+    private readonly IUserRepository _userService;
+    private const string CacheKey = "UserList";
+
+    public ClientMasterController(IConfiguration configuration, UserDbContext context, IHttpContextAccessor httpContextAccessor, JwtTokenService tokenService, IHubContext<NotificationHub> hubContext,IMemoryCache cache,IUserRepository userService)
     {
         _configuration = configuration;
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _tokenService = tokenService;
         _hubContext = hubContext;
+        _cache = cache;
+        _userService = userService;
+
     }
 
 
 
-    [HttpPost("Adminlogin")]
-    public IActionResult Login([FromBody] LoginRequest request)
+    // [HttpPost("Adminlogin")]
+    // public IActionResult Login([FromBody] LoginRequest request)
+    // {
+
+    //     try
+    //     {
+
+    //         if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
+    //             return BadRequest("Username and Password are required");
+
+    //         var user = _context.AdminUser
+    //             .FirstOrDefault(u => u.Username == request.Username && u.Password == request.Password);
+    //         //Console.WriteLine("User: " + user?.Username);
+    //         if (user == null)
+    //             return Unauthorized("Invalid username or password");
+    //         //string HaxhedPassword = AesEncryption.ComputeSha256Hash(request.Password);
+
+    //         var hashed = AesEncryption.SHAPROCESS(request.Password);
+
+
+    //         // ✅ Save to session
+    //         HttpContext.Session.SetString("LoggedInUsername", user.Username);
+
+    //         // ✅ Generate JWT token
+    //         var token = _tokenService.GenerateToken(user.Username, user.Role);
+
+    //         return Ok(new
+    //         {
+    //             Message = "Login successful",
+    //             Token = token,
+    //         });
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         return StatusCode(500, new
+    //         {
+    //             Message = "Unexpected error occurred",
+    //             Error = ex.Message
+    //         });
+    //     }
+    // }
+
+
+
+   [HttpPost("Adminlogin")]
+public IActionResult Login([FromBody] LoginRequest request)
+{
+    try
     {
+        if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
+            return BadRequest("Username and Password are required");
 
-        try
+        string cacheKey = $"User_{request.Username}";
+
+        // ✅ Only use cached user — no DB check
+        if (!_cache.TryGetValue(cacheKey, out AdminUser user))
         {
-
-            if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
-                return BadRequest("Username and Password are required");
-
-            var user = _context.AdminUser
-                .FirstOrDefault(u => u.Username == request.Username && u.Password == request.Password);
-            //Console.WriteLine("User: " + user?.Username);
-            if (user == null)
-                return Unauthorized("Invalid username or password");
-            //string HaxhedPassword = AesEncryption.ComputeSha256Hash(request.Password);
-
-            var hashed = AesEncryption.SHAPROCESS(request.Password);
-
-
-            // ✅ Save to session
-            HttpContext.Session.SetString("LoggedInUsername", user.Username);
-
-            // ✅ Generate JWT token
-            var token = _tokenService.GenerateToken(user.Username, user.Role);
-
-            return Ok(new
-            {
-                Message = "Login successful",
-                Token = token,
-            });
+            return Unauthorized("User not found in cache. Please try again later.");
         }
-        catch (Exception ex)
+
+        // 🧠 Optional: SHA check if passwords are hashed
+        var hashedPassword = AesEncryption.SHAPROCESS(request.Password);
+        if (user.Password != hashedPassword)
+            return Unauthorized("Invalid password (cache only)");
+
+        // ✅ Set session
+        HttpContext.Session.SetString("LoggedInUsername", user.Username);
+
+        // ✅ Generate token
+        var token = _tokenService.GenerateToken(user.Username, user.Role);
+
+        return Ok(new
         {
-            return StatusCode(500, new
-            {
-                Message = "Unexpected error occurred",
-                Error = ex.Message
-            });
-        }
+            Message = "Login successful (cache only)",
+            Token = token
+        });
     }
+    catch (Exception ex)
+    {
+        return StatusCode(500, new
+        {
+            Message = "Unexpected error occurred",
+            Error = ex.Message
+        });
+    }
+}
+
+
+
+
     [SwaggerIgnore]
     [HttpPost("agentlogin")]
     public IActionResult AgentLoginInsert(string ID, string Title, string Username, string Firstname, string lastname, string Email, string MobileNo, string password)
@@ -204,7 +261,34 @@ public class ClientMasterController : ControllerBase
              await _hubContext.Clients.All.SendAsync("ReceiveNotification", message);
             return Ok(new { success = true, message });
         }
+ [HttpGet("getcache")]
+       public async Task<IActionResult> GetUsers()
 
+        {
+            if (!_cache.TryGetValue(CacheKey, out List<UserDto> users))
+            {
+                //users = _userService.GetAllUsersAsync();
+        users = await _userService.GetAllUsersAsync(); // ✅ await the Task
+
+                var cacheEntryOptions = new MemoryCacheEntryOptions()
+                    .SetSlidingExpiration(TimeSpan.FromMinutes(3));
+
+                _cache.Set(CacheKey, users, cacheEntryOptions);
+            }
+
+            return Ok(new { source = "cache/db", data = users });
+        }
+
+        [HttpGet("cached")]
+        public IActionResult GetCachedUsers()
+        {
+            if (_cache.TryGetValue(CacheKey, out List<UserDto> cachedUsers))
+            {
+                return Ok(new { source = "cache only", data = cachedUsers });
+            }
+
+            return NotFound("Cache expired or not set.");
+        }
 
     //     [HttpPost("changepassword")]
     // public IActionResult ChangePassword([FromBody] ChangePasswordRequest request)
