@@ -24,10 +24,6 @@ builder.Services.AddMemoryCache();
 
 
 
-
-
-
-
 // Optional: CORS for frontend connection
 builder.Services.AddCors(options =>
 {
@@ -78,7 +74,6 @@ app.UseHttpsRedirection();
 app.UseSession(); 
 app.UseAuthorization();
 //app.UseStaticFiles(); // 👈 Enables serving HTML, JS, CSS
-
 app.MapControllers();
 
 app.Run();

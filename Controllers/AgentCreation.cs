@@ -156,8 +156,6 @@ public class ClientMasterController : ControllerBase
             }
         }
 
-
-
 [HttpPost("upload")]
 public IActionResult UploadAndParseXml(IFormFile file)
 {
@@ -166,16 +164,28 @@ public IActionResult UploadAndParseXml(IFormFile file)
 
     try
     {
-        XNamespace ns = "http://www.travelport.com/schema/air_v51_0";
         XDocument xdoc;
         using (var stream = file.OpenReadStream())
         {
             xdoc = XDocument.Load(stream);
         }
 
-        // 1. Flight Segments
-        var segments = xdoc.Root
-            .Descendants(ns + "AirSegment")
+        // 🔍 Step 1: Dynamically fetch all namespaces from the root
+        var namespaceMap = xdoc.Root.Attributes()
+            .Where(a => a.IsNamespaceDeclaration)
+            .GroupBy(a => a.Name.Namespace == XNamespace.None ? string.Empty : a.Name.LocalName,
+                     a => XNamespace.Get(a.Value))
+            .ToDictionary(g => g.Key, g => g.First());
+
+        // 💡 Try to find the first usable namespace
+        var ns = namespaceMap.Values.FirstOrDefault();
+        if (ns == null)
+            return BadRequest("No XML namespaces found.");
+
+        // ✅ Step 2: Now parse using dynamic namespace
+
+        // Segments
+        var segments = xdoc.Descendants(ns + "AirSegment")
             .Select(s => new
             {
                 Key = (string)s.Attribute("Key"),
@@ -190,9 +200,8 @@ public IActionResult UploadAndParseXml(IFormFile file)
                 Distance = (string)s.Attribute("Distance")
             }).ToList();
 
-        // 2. Pricing Info
-        var pricing = xdoc.Root
-            .Descendants(ns + "AirPricingInfo")
+        // Pricing Info
+        var pricing = xdoc.Descendants(ns + "AirPricingInfo")
             .Select(p => new
             {
                 TotalFare = (string)p.Attribute("TotalPrice"),
@@ -216,9 +225,8 @@ public IActionResult UploadAndParseXml(IFormFile file)
                     }).ToList()
             }).ToList();
 
-        // 3. Global TaxInfo (if exists)
-        var globalTaxes = xdoc.Root
-            .Descendants(ns + "TaxInfo")
+        // Global Tax Info
+        var globalTaxes = xdoc.Descendants(ns + "TaxInfo")
             .Select(t => new
             {
                 Code = (string)t.Attribute("Category"),
@@ -226,16 +234,15 @@ public IActionResult UploadAndParseXml(IFormFile file)
                 Description = t.Value
             }).Distinct().ToList();
 
-        // 4. Brand List
-        var brandList = xdoc.Root
-            .Descendants(ns + "Brand")
+        // Brand List
+        var brands = xdoc.Descendants(ns + "Brand")
             .Select(b => new
             {
                 BrandID = (string)b.Attribute("Key"),
                 Name = (string)b.Attribute("Name"),
                 Carrier = (string)b.Attribute("Carrier"),
                 Tier = (string)b.Attribute("Tier"),
-                Texts = b.Elements(ns + "Text").Select(txt => txt.Value).ToList()
+                Texts = b.Elements(ns + "Text").Select(t => t.Value).ToList()
             }).ToList();
 
         return Ok(new
@@ -243,7 +250,7 @@ public IActionResult UploadAndParseXml(IFormFile file)
             Segments = segments,
             Pricing = pricing,
             GlobalTaxInfo = globalTaxes,
-            Brands = brandList
+            Brands = brands
         });
     }
     catch (Exception ex)
@@ -251,6 +258,8 @@ public IActionResult UploadAndParseXml(IFormFile file)
         return BadRequest($"Error parsing XML: {ex.Message}");
     }
 }
+
+
 
 
 
