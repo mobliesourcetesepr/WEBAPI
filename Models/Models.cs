@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Xml.Serialization;
 
 namespace AgentCreation.Models
 {
@@ -126,23 +127,23 @@ namespace AgentCreation.Models
         public string ROLE_NAME { get; set; }
         public string ROLE_DESCRIPTION { get; set; }
     }
-    
-public class RoleScreenAccessModel
-{
-    public int RoleId { get; set; }
-    public string ScreenRoute { get; set; }
-    public bool CanView { get; set; }
-    public bool CanAdd { get; set; }
-    public bool CanEdit { get; set; }
-    public bool CanDelete { get; set; }
-}
-public class UpdateBalanceModel
-{
-    public string CustomerName { get; set; }
-    public string PaymentMode { get; set; }
-    public decimal Amount { get; set; }
-    public string Remarks { get; set; }
-}
+
+    public class RoleScreenAccessModel
+    {
+        public int RoleId { get; set; }
+        public string ScreenRoute { get; set; }
+        public bool CanView { get; set; }
+        public bool CanAdd { get; set; }
+        public bool CanEdit { get; set; }
+        public bool CanDelete { get; set; }
+    }
+    public class UpdateBalanceModel
+    {
+        public string CustomerName { get; set; }
+        public string PaymentMode { get; set; }
+        public decimal Amount { get; set; }
+        public string Remarks { get; set; }
+    }
 
     public class AirBookedHistoryModel
     {
@@ -150,9 +151,9 @@ public class UpdateBalanceModel
         public string? ABH_S_PNR { get; set; }
         public DateTime? ABH_BOOKED_DATE { get; set; }
         public string? ABH_STATUS { get; set; }
-        public DateTime? ToDate { get; set; }   
-    
-}
+        public DateTime? ToDate { get; set; }
+
+    }
     public class AirBookedHistoryResponseModel
     {
         public string? ABH_S_PNR { get; set; }
@@ -163,16 +164,71 @@ public class UpdateBalanceModel
         public string? ABH_SECTOR { get; set; }
         public DateTime? ABH_DEPARTURE_DATE { get; set; }
     }
-public class UserDto
+    public class UserDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Email { get; set; }
+    }
+    public class NotifyRequest
+    {
+        public List<string> UserIds { get; set; } = new();
+        public string Message { get; set; } = "";
+    }
+
+    //AVAILABILITY 
+    [XmlRoot("LowFareSearchRsp", Namespace = "http://www.travelport.com/schema/air_v52_0")]
+    public class LowFareSearchRsp
+    {
+        [XmlElement("AirSegmentList")]
+        public AirSegmentList AirSegmentList { get; set; }
+
+        [XmlElement("FareInfoList")]
+        public FareInfoList FareInfoList { get; set; }
+    }
+
+    public class AirSegmentList
+    {
+        [XmlElement("AirSegment")]
+        public List<AirSegment> AirSegments { get; set; }
+    }
+
+    public class AirSegment
+    {
+        [XmlAttribute]
+        public string Key { get; set; }
+
+        [XmlAttribute]
+        public string Carrier { get; set; }
+
+        [XmlAttribute]
+        public string FlightNumber { get; set; }
+
+        [XmlAttribute]
+        public string Origin { get; set; }
+
+        [XmlAttribute]
+        public string Destination { get; set; }
+    }
+
+    public class FareInfoList
+    {
+        [XmlElement("FareInfo")]
+        public List<FareInfo> FareInfos { get; set; }
+    }
+
+    public class FareInfo
+    {
+        [XmlAttribute]
+        public string Key { get; set; }
+
+        [XmlAttribute]
+        public string Amount { get; set; }
+    }
+    public class FilePathRequest
 {
-    public int Id { get; set; }
-    public string Name { get; set; }
-    public string Email { get; set; }
+    public string FilePath { get; set; }
 }
-public class NotifyRequest
-{
-    public List<string> UserIds { get; set; } = new();
-    public string Message { get; set; } = "";
-}
+
 
 }

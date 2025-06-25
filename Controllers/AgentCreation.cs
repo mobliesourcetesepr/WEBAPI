@@ -17,6 +17,8 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
 using AgentCreation.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using System.Xml.Linq;
 
 [Route("api")]
 [ApiController]
@@ -88,49 +90,251 @@ public class ClientMasterController : ControllerBase
     }
 
 
+[HttpPost("parse")]
+        public IActionResult ParseXml([FromBody] FilePathRequest request)
+        {
+            if (string.IsNullOrEmpty(request.FilePath))
+                return BadRequest("File path is required.");
 
-//    [HttpPost("Adminlogin")]
-// public IActionResult Login([FromBody] LoginRequest request)
-// {
-//     try
-//     {
-//         if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
-//             return BadRequest("Username and Password are required");
+            if (!System.IO.File.Exists(request.FilePath))
+                return NotFound("File not found at the specified path.");
 
-//         string cacheKey = $"User_{request.Username}";
+            try
+            {
+                XNamespace ns = "http://www.travelport.com/schema/air_v51_0";
+                var xdoc = XDocument.Load(request.FilePath);
 
-//         // ✅ Only use cached user — no DB check
-//         if (!_cache.TryGetValue(cacheKey, out AdminUser user))
-//         {
-//             return Unauthorized("User not found in cache. Please try again later.");
-//         }
+                // 1. Extract Air Segments
+                var segments = xdoc.Root
+                    .Descendants(ns + "AirSegment")
+                    .Select(s => new
+                    {
+                        Key = (string)s.Attribute("Key"),
+                        Carrier = (string)s.Attribute("Carrier"),
+                        FlightNumber = (string)s.Attribute("FlightNumber"),
+                        Origin = (string)s.Attribute("Origin"),
+                        Destination = (string)s.Attribute("Destination"),
+                        DepartureTime = (string)s.Attribute("DepartureTime"),
+                        ArrivalTime = (string)s.Attribute("ArrivalTime")
+                    }).ToList();
 
-//         // 🧠 Optional: SHA check if passwords are hashed
-//         var hashedPassword = AesEncryption.SHAPROCESS(request.Password);
-//         if (user.Password != hashedPassword)
-//             return Unauthorized("Invalid password (cache only)");
+                // 2. Extract Pricing Info
+                var pricing = xdoc.Root
+                    .Descendants(ns + "AirPricingInfo")
+                    .Select(p => new
+                    {
+                        TotalFare = (string)p.Attribute("TotalPrice"),
+                        ApproximateTotalPrice = (string)p.Attribute("ApproximateTotalPrice"),
+                        BaseFare = (string)p.Elements(ns + "FareInfo")
+                                    .FirstOrDefault()?
+                                    .Element(ns + "BaseFare")?
+                                    .Attribute("Amount"),
+                        Taxes = p.Elements(ns + "TaxInfo")
+                            .Select(t => new
+                            {
+                                Code = (string)t.Attribute("Category"),
+                                Amount = (string)t.Attribute("Amount"),
+                                Description = t.Value
+                            }).ToList(),
+                        FareRules = p.Elements(ns + "FareInfo")
+                            .Select(fi => new
+                            {
+                                FareBasis = (string)fi.Attribute("FareBasis"),
+                                FareRuleKey = (string)fi.Element(ns + "FareRuleKey")?.Value
+                            }).ToList()
+                    }).ToList();
 
-//         // ✅ Set session
-//         HttpContext.Session.SetString("LoggedInUsername", user.Username);
+                return Ok(new
+                {
+                    Segments = segments,
+                    Pricing = pricing
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error parsing XML: {ex.Message}");
+            }
+        }
 
-//         // ✅ Generate token
-//         var token = _tokenService.GenerateToken(user.Username, user.Role);
 
-//         return Ok(new
-//         {
-//             Message = "Login successful (cache only)",
-//             Token = token
-//         });
-//     }
-//     catch (Exception ex)
-//     {
-//         return StatusCode(500, new
-//         {
-//             Message = "Unexpected error occurred",
-//             Error = ex.Message
-//         });
-//     }
-// }
+
+[HttpPost("upload")]
+public IActionResult UploadAndParseXml(IFormFile file)
+{
+    if (file == null || file.Length == 0)
+        return BadRequest("No file uploaded.");
+
+    try
+    {
+        XNamespace ns = "http://www.travelport.com/schema/air_v51_0";
+        XDocument xdoc;
+        using (var stream = file.OpenReadStream())
+        {
+            xdoc = XDocument.Load(stream);
+        }
+
+        // 1. Flight Segments
+        var segments = xdoc.Root
+            .Descendants(ns + "AirSegment")
+            .Select(s => new
+            {
+                Key = (string)s.Attribute("Key"),
+                Group = (string)s.Attribute("Group"),
+                Carrier = (string)s.Attribute("Carrier"),
+                FlightNumber = (string)s.Attribute("FlightNumber"),
+                Origin = (string)s.Attribute("Origin"),
+                Destination = (string)s.Attribute("Destination"),
+                DepartureTime = (string)s.Attribute("DepartureTime"),
+                ArrivalTime = (string)s.Attribute("ArrivalTime"),
+                FlightTime = (string)s.Attribute("FlightTime"),
+                Distance = (string)s.Attribute("Distance")
+            }).ToList();
+
+        // 2. Pricing Info
+        var pricing = xdoc.Root
+            .Descendants(ns + "AirPricingInfo")
+            .Select(p => new
+            {
+                TotalFare = (string)p.Attribute("TotalPrice"),
+                ApproximateTotalPrice = (string)p.Attribute("ApproximateTotalPrice"),
+                BaseFare = p.Elements(ns + "FareInfo")
+                            .FirstOrDefault()?
+                            .Element(ns + "BaseFare")?
+                            .Attribute("Amount")?.Value,
+                Taxes = p.Elements(ns + "TaxInfo")
+                    .Select(t => new
+                    {
+                        Code = (string)t.Attribute("Category"),
+                        Amount = (string)t.Attribute("Amount"),
+                        Description = t.Value
+                    }).ToList(),
+                FareRules = p.Elements(ns + "FareInfo")
+                    .Select(fi => new
+                    {
+                        FareBasis = (string)fi.Attribute("FareBasis"),
+                        FareRuleKey = (string)fi.Element(ns + "FareRuleKey")?.Value
+                    }).ToList()
+            }).ToList();
+
+        // 3. Global TaxInfo (if exists)
+        var globalTaxes = xdoc.Root
+            .Descendants(ns + "TaxInfo")
+            .Select(t => new
+            {
+                Code = (string)t.Attribute("Category"),
+                Amount = (string)t.Attribute("Amount"),
+                Description = t.Value
+            }).Distinct().ToList();
+
+        // 4. Brand List
+        var brandList = xdoc.Root
+            .Descendants(ns + "Brand")
+            .Select(b => new
+            {
+                BrandID = (string)b.Attribute("Key"),
+                Name = (string)b.Attribute("Name"),
+                Carrier = (string)b.Attribute("Carrier"),
+                Tier = (string)b.Attribute("Tier"),
+                Texts = b.Elements(ns + "Text").Select(txt => txt.Value).ToList()
+            }).ToList();
+
+        return Ok(new
+        {
+            Segments = segments,
+            Pricing = pricing,
+            GlobalTaxInfo = globalTaxes,
+            Brands = brandList
+        });
+    }
+    catch (Exception ex)
+    {
+        return BadRequest($"Error parsing XML: {ex.Message}");
+    }
+}
+
+
+
+    // [HttpPost("parse")]
+    // public IActionResult ParseXmlFromBody([FromBody] FilePathRequest request)
+    // {
+    //     if (string.IsNullOrEmpty(request.FilePath))
+    //         return BadRequest("File path is required.");
+
+    //     if (!System.IO.File.Exists(request.FilePath))
+    //         return NotFound("File not found.");
+
+    //     try
+    //     {
+    //                XNamespace ns = "http://www.travelport.com/schema/air_v51_0";
+    //         var xdoc = XDocument.Load(request.FilePath);
+
+    //         // Extract something meaningful from the XML
+
+
+
+    // // ✅ Use xdoc.Root.Descendants to scope search correctly
+    // var segments = xdoc.Root
+    //     .Descendants(ns + "AirSegment")
+    //     .Select(s => new {
+    //         Key = (string)s.Attribute("Key"),
+    //         Carrier = (string)s.Attribute("Carrier"),
+    //         FlightNumber = (string)s.Attribute("FlightNumber"),
+    //         Origin = (string)s.Attribute("Origin"),
+    //         Destination = (string)s.Attribute("Destination")
+    //     })
+    //     .ToList();
+    //         return Ok(segments);
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         return BadRequest($"Error parsing XML: {ex.Message}");
+    //     }
+    // }
+
+
+
+    //    [HttpPost("Adminlogin")]
+    // public IActionResult Login([FromBody] LoginRequest request)
+    // {
+    //     try
+    //     {
+    //         if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
+    //             return BadRequest("Username and Password are required");
+
+    //         string cacheKey = $"User_{request.Username}";
+
+    //         // ✅ Only use cached user — no DB check
+    //         if (!_cache.TryGetValue(cacheKey, out AdminUser user))
+    //         {
+    //             return Unauthorized("User not found in cache. Please try again later.");
+    //         }
+
+    //         // 🧠 Optional: SHA check if passwords are hashed
+    //         var hashedPassword = AesEncryption.SHAPROCESS(request.Password);
+    //         if (user.Password != hashedPassword)
+    //             return Unauthorized("Invalid password (cache only)");
+
+    //         // ✅ Set session
+    //         HttpContext.Session.SetString("LoggedInUsername", user.Username);
+
+    //         // ✅ Generate token
+    //         var token = _tokenService.GenerateToken(user.Username, user.Role);
+
+    //         return Ok(new
+    //         {
+    //             Message = "Login successful (cache only)",
+    //             Token = token
+    //         });
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         return StatusCode(500, new
+    //         {
+    //             Message = "Unexpected error occurred",
+    //             Error = ex.Message
+    //         });
+    //     }
+    // }
 
 
 
@@ -388,16 +592,16 @@ public class ClientMasterController : ControllerBase
     //             return Ok(new { source = "cache/db", data = users });
     //         }
 
-    [HttpGet("cached")]
-        public IActionResult GetCachedUsers()
-        {
-            if (_cache.TryGetValue(CacheKey, out List<UserDto> cachedUsers))
-            {
-                return Ok(new { source = "cache only", data = cachedUsers });
-            }
+    // [HttpGet("cached")]
+    //     public IActionResult GetCachedUsers()
+    //     {
+    //         if (_cache.TryGetValue(CacheKey, out List<UserDto> cachedUsers))
+    //         {
+    //             return Ok(new { source = "cache only", data = cachedUsers });
+    //         }
 
-            return NotFound("Cache expired or not set.");
-        }
+    //         return NotFound("Cache expired or not set.");
+    //     }
 
     //     [HttpPost("changepassword")]
     // public IActionResult ChangePassword([FromBody] ChangePasswordRequest request)
