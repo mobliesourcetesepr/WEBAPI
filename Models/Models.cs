@@ -177,54 +177,59 @@ namespace AgentCreation.Models
     }
 
     //AVAILABILITY 
-    [XmlRoot("LowFareSearchRsp", Namespace = "http://www.travelport.com/schema/air_v52_0")]
-    public class LowFareSearchRsp
-    {
-        [XmlElement("AirSegmentList")]
-        public AirSegmentList AirSegmentList { get; set; }
+public class FlightSegment
+{
+    public string Key { get; set; }
+    public string Group { get; set; }
+    public string Carrier { get; set; }
+    public string FlightNumber { get; set; }
+    public string Origin { get; set; }
+    public string Destination { get; set; }
+    public string DepartureTime { get; set; }
+    public string ArrivalTime { get; set; }
+    public string FlightTime { get; set; }
+    public string Distance { get; set; }
+}
+public class TaxItem
+{
+    public string Code { get; set; }
+    public string Amount { get; set; }
+    public string Description { get; set; }
+}
+public class FareRule
+{
+    public string FareBasis { get; set; }
+    public string FareRuleKey { get; set; }
+}
 
-        [XmlElement("FareInfoList")]
-        public FareInfoList FareInfoList { get; set; }
-    }
 
-    public class AirSegmentList
-    {
-        [XmlElement("AirSegment")]
-        public List<AirSegment> AirSegments { get; set; }
-    }
+public class PricingInfo
+{
+    public string TotalFare { get; set; }
+    public string ApproximateTotalPrice { get; set; }
+    public string BaseFare { get; set; }
+    public List<TaxItem> Taxes { get; set; }
+    public List<FareRule> FareRules { get; set; }
+}
 
-    public class AirSegment
-    {
-        [XmlAttribute]
-        public string Key { get; set; }
+public class BrandInfo
+{
+    public string BrandID { get; set; }
+    public string Name { get; set; }
+    public string Carrier { get; set; }
+    public string Tier { get; set; }
+    public List<string> Texts { get; set; }
+}
 
-        [XmlAttribute]
-        public string Carrier { get; set; }
 
-        [XmlAttribute]
-        public string FlightNumber { get; set; }
+public class SearchResponse
+{
+    public List<FlightSegment> Segments { get; set; }
+    public List<PricingInfo> Pricing { get; set; }
+    public List<TaxItem> GlobalTaxInfo { get; set; }
+    public List<BrandInfo> Brands { get; set; }
+}
 
-        [XmlAttribute]
-        public string Origin { get; set; }
-
-        [XmlAttribute]
-        public string Destination { get; set; }
-    }
-
-    public class FareInfoList
-    {
-        [XmlElement("FareInfo")]
-        public List<FareInfo> FareInfos { get; set; }
-    }
-
-    public class FareInfo
-    {
-        [XmlAttribute]
-        public string Key { get; set; }
-
-        [XmlAttribute]
-        public string Amount { get; set; }
-    }
     public class FilePathRequest
 {
     public string FilePath { get; set; }

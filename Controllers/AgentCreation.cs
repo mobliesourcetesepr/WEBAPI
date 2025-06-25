@@ -170,23 +170,18 @@ public IActionResult UploadAndParseXml(IFormFile file)
             xdoc = XDocument.Load(stream);
         }
 
-        // 🔍 Step 1: Dynamically fetch all namespaces from the root
-        var namespaceMap = xdoc.Root.Attributes()
+        // Dynamically get any available namespace
+        var ns = xdoc.Root.Attributes()
             .Where(a => a.IsNamespaceDeclaration)
-            .GroupBy(a => a.Name.Namespace == XNamespace.None ? string.Empty : a.Name.LocalName,
-                     a => XNamespace.Get(a.Value))
-            .ToDictionary(g => g.Key, g => g.First());
+            .Select(a => XNamespace.Get(a.Value))
+            .FirstOrDefault();
 
-        // 💡 Try to find the first usable namespace
-        var ns = namespaceMap.Values.FirstOrDefault();
         if (ns == null)
-            return BadRequest("No XML namespaces found.");
+            return BadRequest("No XML namespace detected.");
 
-        // ✅ Step 2: Now parse using dynamic namespace
-
-        // Segments
+        // Parse into models
         var segments = xdoc.Descendants(ns + "AirSegment")
-            .Select(s => new
+            .Select(s => new FlightSegment
             {
                 Key = (string)s.Attribute("Key"),
                 Group = (string)s.Attribute("Group"),
@@ -200,9 +195,8 @@ public IActionResult UploadAndParseXml(IFormFile file)
                 Distance = (string)s.Attribute("Distance")
             }).ToList();
 
-        // Pricing Info
         var pricing = xdoc.Descendants(ns + "AirPricingInfo")
-            .Select(p => new
+            .Select(p => new PricingInfo
             {
                 TotalFare = (string)p.Attribute("TotalPrice"),
                 ApproximateTotalPrice = (string)p.Attribute("ApproximateTotalPrice"),
@@ -211,32 +205,30 @@ public IActionResult UploadAndParseXml(IFormFile file)
                             .Element(ns + "BaseFare")?
                             .Attribute("Amount")?.Value,
                 Taxes = p.Elements(ns + "TaxInfo")
-                    .Select(t => new
-                    {
-                        Code = (string)t.Attribute("Category"),
-                        Amount = (string)t.Attribute("Amount"),
-                        Description = t.Value
-                    }).ToList(),
+                         .Select(t => new TaxItem
+                         {
+                             Code = (string)t.Attribute("Category"),
+                             Amount = (string)t.Attribute("Amount"),
+                             Description = t.Value
+                         }).ToList(),
                 FareRules = p.Elements(ns + "FareInfo")
-                    .Select(fi => new
-                    {
-                        FareBasis = (string)fi.Attribute("FareBasis"),
-                        FareRuleKey = (string)fi.Element(ns + "FareRuleKey")?.Value
-                    }).ToList()
+                             .Select(fi => new FareRule
+                             {
+                                 FareBasis = (string)fi.Attribute("FareBasis"),
+                                 FareRuleKey = (string)fi.Element(ns + "FareRuleKey")?.Value
+                             }).ToList()
             }).ToList();
 
-        // Global Tax Info
         var globalTaxes = xdoc.Descendants(ns + "TaxInfo")
-            .Select(t => new
+            .Select(t => new TaxItem
             {
                 Code = (string)t.Attribute("Category"),
                 Amount = (string)t.Attribute("Amount"),
                 Description = t.Value
             }).Distinct().ToList();
 
-        // Brand List
         var brands = xdoc.Descendants(ns + "Brand")
-            .Select(b => new
+            .Select(b => new BrandInfo
             {
                 BrandID = (string)b.Attribute("Key"),
                 Name = (string)b.Attribute("Name"),
@@ -245,19 +237,22 @@ public IActionResult UploadAndParseXml(IFormFile file)
                 Texts = b.Elements(ns + "Text").Select(t => t.Value).ToList()
             }).ToList();
 
-        return Ok(new
+        var response = new SearchResponse
         {
             Segments = segments,
             Pricing = pricing,
             GlobalTaxInfo = globalTaxes,
             Brands = brands
-        });
+        };
+
+        return Ok(response);
     }
     catch (Exception ex)
     {
         return BadRequest($"Error parsing XML: {ex.Message}");
     }
 }
+
 
 
 
