@@ -1,6 +1,9 @@
 using AgentCreation.Data;
 using AgentCreation.Hubs;
+using AgentCreation.Providers;
+using AgentCreation.Repositories;
 using AgentCreation.Services;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -50,6 +53,8 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddDbContext<UserDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerConnection")));
 
+builder.Services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -58,8 +63,15 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 app.UseCors("AllowLocalhostFrontend");
- // ✅ Map your SignalR hub endpoint
+// ✅ Map your SignalR hub endpoint
 app.MapHub<NotificationHub>("/notificationhub");
+
+app.UseWebSockets(); // Enable WebSockets
+
+app.UseMiddleware<WebSocketDemo.Middlewares.WebSocketMiddleware>(); // Our WebSocket middleware
+
+app.MapGet("/", () => "WebSocket API is running!");
+
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseHttpsRedirection();

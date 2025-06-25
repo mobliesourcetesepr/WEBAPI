@@ -3,16 +3,20 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Configuration;
+using AgentCreation.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace AgentCreation.Services
 {
     public class JwtTokenService
     {
         private readonly IConfiguration _config;
+         private readonly UserDbContext _context;
 
-        public JwtTokenService(IConfiguration config)
+        public JwtTokenService(IConfiguration config, UserDbContext context)
         {
             _config = config;
+             _context = context;
         }
 
         public string GenerateToken(string username, string role)
@@ -30,11 +34,20 @@ namespace AgentCreation.Services
                 issuer: _config["Jwt:Issuer"],
                 audience: _config["Jwt:Audience"],
                 claims: claims,
-                expires:  DateTime.UtcNow.AddMinutes(30),
+                expires: DateTime.UtcNow.AddMinutes(30),
                 signingCredentials: credentials
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+        
+        public async Task<List<string>> GetUsernamesByUserIdsAsync(List<int> userIds)
+    {
+        return await _context.AdminUser
+            .Where(u => userIds.Contains(u.Id))
+            .Select(u => u.Username)
+            .Distinct()
+            .ToListAsync();
+    }
     }
 }

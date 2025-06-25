@@ -1,6 +1,16 @@
 using AgentCreation.Models;
+// namespace AgentCreation.IUserRepository
+// {
+//     public interface IUserRepository
+// {
+//     Task<List<UserDto>> GetUsernamesByAdminIdAsync();
+// }
+// }
 
-public interface IUserRepository
+namespace AgentCreation.Repositories
 {
-    Task<List<UserDto>> GetAllUsersAsync();
+    public interface IUserRepository
+    {
+        Task<List<string>> GetUsernamesByAdminIdAsync(string adminId);
+    }
 }

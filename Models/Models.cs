@@ -169,6 +169,10 @@ public class UserDto
     public string Name { get; set; }
     public string Email { get; set; }
 }
-
+public class NotifyRequest
+{
+    public List<string> UserIds { get; set; } = new();
+    public string Message { get; set; } = "";
+}
 
 }

@@ -15,6 +15,8 @@ using AgentCreation.Utilities;
 using AgentCreation.Models;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
+using AgentCreation.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 [Route("api")]
 [ApiController]
@@ -43,92 +45,92 @@ public class ClientMasterController : ControllerBase
 
 
 
-    // [HttpPost("Adminlogin")]
-    // public IActionResult Login([FromBody] LoginRequest request)
-    // {
-
-    //     try
-    //     {
-
-    //         if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
-    //             return BadRequest("Username and Password are required");
-
-    //         var user = _context.AdminUser
-    //             .FirstOrDefault(u => u.Username == request.Username && u.Password == request.Password);
-    //         //Console.WriteLine("User: " + user?.Username);
-    //         if (user == null)
-    //             return Unauthorized("Invalid username or password");
-    //         //string HaxhedPassword = AesEncryption.ComputeSha256Hash(request.Password);
-
-    //         var hashed = AesEncryption.SHAPROCESS(request.Password);
-
-
-    //         // ✅ Save to session
-    //         HttpContext.Session.SetString("LoggedInUsername", user.Username);
-
-    //         // ✅ Generate JWT token
-    //         var token = _tokenService.GenerateToken(user.Username, user.Role);
-
-    //         return Ok(new
-    //         {
-    //             Message = "Login successful",
-    //             Token = token,
-    //         });
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         return StatusCode(500, new
-    //         {
-    //             Message = "Unexpected error occurred",
-    //             Error = ex.Message
-    //         });
-    //     }
-    // }
-
-
-
-   [HttpPost("Adminlogin")]
-public IActionResult Login([FromBody] LoginRequest request)
-{
-    try
+    [HttpPost("Adminlogin")]
+    public IActionResult Login([FromBody] LoginRequest request)
     {
-        if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
-            return BadRequest("Username and Password are required");
 
-        string cacheKey = $"User_{request.Username}";
-
-        // ✅ Only use cached user — no DB check
-        if (!_cache.TryGetValue(cacheKey, out AdminUser user))
+        try
         {
-            return Unauthorized("User not found in cache. Please try again later.");
+
+            if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
+                return BadRequest("Username and Password are required");
+
+            var user = _context.AdminUser
+                .FirstOrDefault(u => u.Username == request.Username && u.Password == request.Password);
+            //Console.WriteLine("User: " + user?.Username);
+            if (user == null)
+                return Unauthorized("Invalid username or password");
+            //string HaxhedPassword = AesEncryption.ComputeSha256Hash(request.Password);
+
+            var hashed = AesEncryption.SHAPROCESS(request.Password);
+
+
+            // ✅ Save to session
+            HttpContext.Session.SetString("LoggedInUsername", user.Username);
+
+            // ✅ Generate JWT token
+            var token = _tokenService.GenerateToken(user.Username, user.Role);
+
+            return Ok(new
+            {
+                Message = "Login successful",
+                Token = token,
+            });
         }
-
-        // 🧠 Optional: SHA check if passwords are hashed
-        var hashedPassword = AesEncryption.SHAPROCESS(request.Password);
-        if (user.Password != hashedPassword)
-            return Unauthorized("Invalid password (cache only)");
-
-        // ✅ Set session
-        HttpContext.Session.SetString("LoggedInUsername", user.Username);
-
-        // ✅ Generate token
-        var token = _tokenService.GenerateToken(user.Username, user.Role);
-
-        return Ok(new
+        catch (Exception ex)
         {
-            Message = "Login successful (cache only)",
-            Token = token
-        });
+            return StatusCode(500, new
+            {
+                Message = "Unexpected error occurred",
+                Error = ex.Message
+            });
+        }
     }
-    catch (Exception ex)
-    {
-        return StatusCode(500, new
-        {
-            Message = "Unexpected error occurred",
-            Error = ex.Message
-        });
-    }
-}
+
+
+
+//    [HttpPost("Adminlogin")]
+// public IActionResult Login([FromBody] LoginRequest request)
+// {
+//     try
+//     {
+//         if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
+//             return BadRequest("Username and Password are required");
+
+//         string cacheKey = $"User_{request.Username}";
+
+//         // ✅ Only use cached user — no DB check
+//         if (!_cache.TryGetValue(cacheKey, out AdminUser user))
+//         {
+//             return Unauthorized("User not found in cache. Please try again later.");
+//         }
+
+//         // 🧠 Optional: SHA check if passwords are hashed
+//         var hashedPassword = AesEncryption.SHAPROCESS(request.Password);
+//         if (user.Password != hashedPassword)
+//             return Unauthorized("Invalid password (cache only)");
+
+//         // ✅ Set session
+//         HttpContext.Session.SetString("LoggedInUsername", user.Username);
+
+//         // ✅ Generate token
+//         var token = _tokenService.GenerateToken(user.Username, user.Role);
+
+//         return Ok(new
+//         {
+//             Message = "Login successful (cache only)",
+//             Token = token
+//         });
+//     }
+//     catch (Exception ex)
+//     {
+//         return StatusCode(500, new
+//         {
+//             Message = "Unexpected error occurred",
+//             Error = ex.Message
+//         });
+//     }
+// }
 
 
 
@@ -254,32 +256,139 @@ public IActionResult Login([FromBody] LoginRequest request)
     }
 
 
-    [HttpPost("send")]
-        public async Task<IActionResult> SendMessage([FromBody] string message)
-        {
-            // Send message to all connected clients
-             await _hubContext.Clients.All.SendAsync("ReceiveNotification", message);
-            return Ok(new { success = true, message });
-        }
- [HttpGet("getcache")]
-       public async Task<IActionResult> GetUsers()
+    // [HttpPost("send")]
+    //     public async Task<IActionResult> SendMessage([FromBody] string message)
+    //     {
+    //         // Send message to all connected clients
+    //          await _hubContext.Clients.All.SendAsync("ReceiveNotification", message);
+    //         return Ok(new { success = true, message });
+    //     }
 
+
+
+    //  [HttpPost("send-to-admins")]
+    //     public async Task<IActionResult> SendToAdmins([FromBody] NotifyRequest request)
+    //     {
+    //         var allUsernames = new List<string>();
+
+    //     foreach (var adminId in request.UserIds)
+    //     {
+
+    //         var users = await _userService.GetUsernamesByAdminIdAsync(adminId);
+
+    //         allUsernames.AddRange(users);
+
+    //         }
+
+    //         var connections = ConnectionMapping.GetConnectionIdsByUsernames(allUsernames.Distinct());
+
+    //         foreach (var connId in connections)
+    //         {
+    //             await _hubContext.Clients.Client(connId).SendAsync("ReceiveNotification", request.Message);
+    //         }
+
+    //         return Ok($"✅ Sent to {connections.Count} users from {request.UserIds.Count} admin(s).");
+    //     }
+
+    //  [HttpPost("send")]
+    //     public async Task<IActionResult> SendNotification([FromQuery] string username, [FromBody] string message)
+    //     {
+    //         var connectionId = NotificationHub.GetConnectionId(username);
+    //         if (connectionId != null)
+    //         {
+    //             await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveNotification", message);
+    //             return Ok($"📤 Message sent to {username}");
+    //         }
+
+    //         return NotFound($"❌ No connection found for {username}");
+    //     }
+
+    [HttpPost("send-to-admins")]
+    public async Task<IActionResult> SendToAdmins([FromBody] NotifyRequest request)
+    {
+        var allUsernames = new List<string>();
+
+        foreach (var adminId in request.UserIds)
         {
-            if (!_cache.TryGetValue(CacheKey, out List<UserDto> users))
+            var users = await _userService.GetUsernamesByAdminIdAsync(adminId);
+
+            if (users.Any())
             {
-                //users = _userService.GetAllUsersAsync();
-        users = await _userService.GetAllUsersAsync(); // ✅ await the Task
-
-                var cacheEntryOptions = new MemoryCacheEntryOptions()
-                    .SetSlidingExpiration(TimeSpan.FromMinutes(3));
-
-                _cache.Set(CacheKey, users, cacheEntryOptions);
+                Console.WriteLine($"✅ Admin {adminId} users: " + string.Join(", ", users));
+                allUsernames.AddRange(users);
             }
-
-            return Ok(new { source = "cache/db", data = users });
+            else
+            {
+                Console.WriteLine($"⚠️ No users found for AdminId: {adminId}");
+            }
         }
 
-        [HttpGet("cached")]
+        var distinctUsernames = allUsernames.Distinct().ToList();
+        var connections = ConnectionMapping.GetConnectionIdsByUsernames(distinctUsernames);
+
+        Console.WriteLine("📡 Sending to usernames: " + string.Join(", ", distinctUsernames));
+        Console.WriteLine("🔌 Connection IDs: " + string.Join(", ", connections));
+
+        foreach (var connId in connections)
+        {
+            await _hubContext.Clients.Client(connId).SendAsync("ReceiveNotification", request.Message);
+        }
+
+        return Ok(new
+        {
+            SentTo = connections.Count,
+            AdminCount = request.UserIds.Count
+        });
+    }
+
+
+// [HttpPost("notify/{adminId}")]
+// public async Task<IActionResult> NotifyAdminUsers(string adminId)
+// {
+//     var usernames = await _context.AdminUser
+//         .Where(a => a.AdminId == adminId)
+//         .Select(a => a.Username)
+//         .ToListAsync();
+
+//     foreach (var username in usernames)
+//     {
+//             Console.WriteLine(username);
+//             Console.WriteLine(connId);
+//         if (ConnectionMapping.TryGetConnection(username, out var connId))
+//             {
+
+//                 await _hubContext.Clients.Client(connId)
+//                         .SendAsync("ReceiveNotification", $"📢 Hello {username}");
+//             }
+//             else
+//             {
+//                 Console.WriteLine($"⚠️ No active connection for {username}");
+//             }
+//     }
+
+//     return Ok("Notifications sent");
+// }
+
+
+    //  [HttpGet("getcache")]
+    //        public async Task<IActionResult> GetUsers()
+
+    //         {
+    //             if (!_cache.TryGetValue(CacheKey, out List<UserDto> users))
+    //             {
+    //                 //users = _userService.GetAllUsersAsync();
+    //         users = await _userService.GetAllUsersAsync(); // ✅ await the Task
+
+    //                 var cacheEntryOptions = new MemoryCacheEntryOptions()
+    //                     .SetSlidingExpiration(TimeSpan.FromMinutes(3));
+
+    //                 _cache.Set(CacheKey, users, cacheEntryOptions);
+    //             }
+
+    //             return Ok(new { source = "cache/db", data = users });
+    //         }
+
+    [HttpGet("cached")]
         public IActionResult GetCachedUsers()
         {
             if (_cache.TryGetValue(CacheKey, out List<UserDto> cachedUsers))
